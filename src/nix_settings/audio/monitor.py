@@ -30,7 +30,10 @@ class PipeWireMonitor:
     def stop(self) -> None:
         self._stop.set()
         if self._process is not None:
-            self._process.terminate()
+            try:
+                self._process.terminate()
+            except OSError:
+                pass
 
     def _run(self) -> None:
         delay = 0.5
@@ -52,6 +55,7 @@ class PipeWireMonitor:
                         break
                     if not line.strip():
                         continue
+                    delay = 0.5
                     pending = True
                     now = time.monotonic()
                     if now - last_emit >= 0.25:

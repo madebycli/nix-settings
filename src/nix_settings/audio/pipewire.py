@@ -77,12 +77,18 @@ def _volume(item: Mapping[str, Any], props: Mapping[str, Any]) -> float:
     return 1.0
 
 
+def _bool_value(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, str)):
+        return str(value).lower() in {"1", "true", "yes", "on"}
+    return False
+
+
 def _muted(item: Mapping[str, Any], props: Mapping[str, Any]) -> bool:
     direct = _first(props, "mute", "node.mute", "audio.mute")
-    if isinstance(direct, bool):
-        return direct
-    if isinstance(direct, (int, str)):
-        return str(direct).lower() in {"1", "true", "yes", "on"}
+    if direct is not None:
+        return _bool_value(direct)
     for candidate in _find_named_values(item, {"mute", "muted"}):
         if isinstance(candidate, bool):
             return candidate
@@ -231,7 +237,11 @@ def parse_pw_dump(payload: str | bytes | list[object]) -> AudioSnapshot:
             direction = (
                 AudioDirection.OUTPUT if media_class == "Audio/Sink" else AudioDirection.INPUT
             )
-            default_name = default_sink_name if direction is AudioDirection.OUTPUT else default_source_name
+            default_name = (
+                default_sink_name
+                if direction is AudioDirection.OUTPUT
+                else default_source_name
+            )
             device = AudioDevice(
                 id=node_id,
                 name=name,
@@ -257,7 +267,7 @@ def parse_pw_dump(payload: str | bytes | list[object]) -> AudioSnapshot:
             if media_class == "Stream/Output/Audio"
             else AudioDirection.RECORDING
         )
-        writable = bool(
+        writable = _bool_value(
             _first(props, "volume.writable", "node.volume.writable", "audio.volume.writable")
         )
         stream = AudioStream(
