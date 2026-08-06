@@ -7,6 +7,7 @@ from typing import Any
 from nix_settings.audio.backend import AudioBackend
 from nix_settings.audio.models import AudioDevice, AudioSnapshot, AudioStream
 from nix_settings.audio.monitor import PipeWireMonitor
+from nix_settings.gui.layout import stream_route_width
 from nix_settings.gui.widgets.device_selector import DeviceSelector
 from nix_settings.gui.widgets.error_banner import ErrorBanner
 from nix_settings.gui.widgets.stream_row import StreamRow
@@ -20,12 +21,14 @@ class SoundPage:
         GLib: Any,
         backend: AudioBackend,
         initial_snapshot: AudioSnapshot,
+        layout_width: int,
         initial_error: str | None = None,
     ) -> None:
         self.Gtk = Gtk
         self.GLib = GLib
         self.backend = backend
         self.snapshot = initial_snapshot
+        self._stream_route_width = stream_route_width(layout_width)
         self._refresh_lock = threading.Lock()
         self._refresh_again = False
         self._destroyed = False
@@ -307,6 +310,7 @@ class SoundPage:
                     ),
                     self._interaction_changed,
                     on_scroll,
+                    self._stream_route_width,
                 )
                 control = row.volume_control
                 if control is not None:
