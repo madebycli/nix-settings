@@ -20,6 +20,7 @@ class StreamRow:
         on_move: Callable[[int, int], None],
         on_interaction: Callable[[bool], None],
         on_scroll: Callable[[Any], None],
+        route_width: int,
     ) -> None:
         self.volume_control: VolumeControl | None = None
         self.widget = Gtk.Grid()
@@ -29,8 +30,11 @@ class StreamRow:
         self.widget.set_size_request(-1, 108)
         self.widget.get_style_context().add_class("stream-row")
 
+        # The app column absorbs all remaining room. This keeps the route group
+        # pinned to the right and identical for short and long application names.
         app = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=9)
-        app.set_size_request(230, 40)
+        app.set_size_request(190, 40)
+        app.set_hexpand(True)
         app.set_valign(Gtk.Align.CENTER)
         app.get_style_context().add_class("stream-app")
 
@@ -42,13 +46,14 @@ class StreamRow:
         icon.set_valign(Gtk.Align.CENTER)
 
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
-        text.set_size_request(195, 40)
-        text.set_hexpand(False)
+        text.set_size_request(150, 40)
+        text.set_hexpand(True)
         text.set_valign(Gtk.Align.CENTER)
 
         title = Gtk.Label(label=stream.application_name, xalign=0)
         title.set_single_line_mode(True)
         title.set_ellipsize(3)
+        title.set_hexpand(True)
         title.set_tooltip_text(stream.application_name)
         title.get_style_context().add_class("stream-title")
 
@@ -59,16 +64,18 @@ class StreamRow:
         detail = Gtk.Label(label=detail_text, xalign=0)
         detail.set_single_line_mode(True)
         detail.set_ellipsize(3)
+        detail.set_hexpand(True)
         detail.set_tooltip_text(detail_text)
         detail.get_style_context().add_class("stream-detail")
 
         text.pack_start(title, False, False, 0)
         text.pack_start(detail, False, False, 0)
         app.pack_start(icon, False, False, 0)
-        app.pack_start(text, False, False, 0)
+        app.pack_start(text, True, True, 0)
 
         route_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        route_row.set_hexpand(True)
+        route_row.set_hexpand(False)
+        route_row.set_halign(Gtk.Align.END)
         route_row.set_valign(Gtk.Align.CENTER)
         route_label = Gtk.Label(label="ROUTE", xalign=0)
         route_label.set_size_request(46, 34)
@@ -80,10 +87,11 @@ class StreamRow:
             stream.device_id,
             lambda device_id: on_move(stream.id, device_id),
             on_scroll,
-            width=300,
+            width=route_width,
         )
+        routing.widget.set_halign(Gtk.Align.END)
         route_row.pack_start(route_label, False, False, 0)
-        route_row.pack_start(routing.widget, True, True, 0)
+        route_row.pack_start(routing.widget, False, False, 0)
 
         volume_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         volume_row.set_hexpand(True)
