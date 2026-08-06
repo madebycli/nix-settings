@@ -30,13 +30,21 @@ class DeviceSelector:
         renderer = Gtk.CellRendererText()
         renderer.set_property("ellipsize", 3)
         renderer.set_property("ellipsize-set", True)
-        renderer.set_property("width-chars", 34)
         self.widget.pack_start(renderer, True)
         self.widget.add_attribute(renderer, "text", 0)
         self.widget.set_active(active_index if devices else -1)
-        self.widget.set_hexpand(True)
-        if width is not None:
+
+        if width is None:
+            renderer.set_property("width-chars", 34)
+            self.widget.set_hexpand(True)
+        else:
+            # Gtk's size request is only a minimum. Fixing the renderer as well
+            # prevents short labels from making the combo grow into free space.
+            renderer.set_fixed_size(max(80, width - 44), -1)
             self.widget.set_size_request(width, 34)
+            self.widget.set_hexpand(False)
+            self.widget.set_halign(Gtk.Align.START)
+
         self.widget.connect("changed", self._changed, on_selected)
         self.widget.connect("scroll-event", self._scroll)
 
