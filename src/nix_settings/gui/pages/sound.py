@@ -190,7 +190,7 @@ class SoundPage:
         devices: Sequence[AudioDevice],
         selected_id: int | None,
     ) -> Any:
-        card = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=8)
+        card = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=7)
         card.get_style_context().add_class("card")
         card.get_style_context().add_class("device-card")
         card.set_hexpand(True)
@@ -206,29 +206,21 @@ class SoundPage:
             return card
 
         selected = next((device for device in devices if device.id == selected_id), devices[0])
-        body = self.Gtk.Box(orientation=self.Gtk.Orientation.HORIZONTAL, spacing=14)
+        body = self.Gtk.Grid()
+        body.set_column_spacing(14)
+        body.set_row_spacing(3)
+        body.set_hexpand(True)
+        body.set_valign(self.Gtk.Align.CENTER)
 
-        info = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=5)
         selector = DeviceSelector(
             self.Gtk,
             devices,
             selected.id,
             lambda device_id: self._operation(lambda: self.backend.set_default(device_id)),
+            width=420,
         )
-        info.pack_start(selector.widget, False, False, 0)
-
-        detail_parts: list[str] = []
-        if selected.active_port:
-            detail_parts.append(selected.active_port)
-        if selected.active_profile:
-            detail_parts.append(selected.active_profile)
-        if detail_parts:
-            detail_text = "  •  ".join(detail_parts)
-            detail = self.Gtk.Label(label=detail_text, xalign=0)
-            detail.get_style_context().add_class("device-detail")
-            detail.set_ellipsize(3)
-            detail.set_tooltip_text(detail_text)
-            info.pack_start(detail, False, False, 0)
+        selector.widget.set_halign(self.Gtk.Align.START)
+        selector.widget.set_valign(self.Gtk.Align.CENTER)
 
         controls = VolumeControl(
             self.Gtk,
@@ -239,11 +231,27 @@ class SoundPage:
             lambda muted: self._operation(lambda: self.backend.set_muted(selected.id, muted)),
             self._interaction_changed,
         )
-        controls.widget.set_size_request(330, -1)
+        controls.widget.set_hexpand(True)
+        controls.widget.set_valign(self.Gtk.Align.CENTER)
         self._volume_controls[selected.id] = controls
 
-        body.pack_start(info, True, True, 0)
-        body.pack_end(controls.widget, False, False, 0)
+        body.attach(selector.widget, 0, 0, 1, 1)
+        body.attach(controls.widget, 1, 0, 1, 1)
+
+        detail_parts: list[str] = []
+        if selected.active_port:
+            detail_parts.append(selected.active_port)
+        if selected.active_profile:
+            detail_parts.append(selected.active_profile)
+        if detail_parts:
+            detail_text = "  •  ".join(detail_parts)
+            detail = self.Gtk.Label(label=detail_text, xalign=0)
+            detail.set_single_line_mode(True)
+            detail.set_ellipsize(3)
+            detail.set_tooltip_text(detail_text)
+            detail.get_style_context().add_class("device-detail")
+            body.attach(detail, 0, 1, 1, 1)
+
         card.pack_start(body, False, False, 0)
         return card
 
