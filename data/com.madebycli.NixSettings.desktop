@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Nix Settings
+Comment=Native settings for NixOS
+Exec=nix-settings
+Icon=com.madebycli.NixSettings
+Terminal=false
+Categories=Settings;System;
+StartupNotify=true
+Actions=Sound;
+
+[Desktop Action Sound]
+Name=Sound
+Exec=nix-settings sound
