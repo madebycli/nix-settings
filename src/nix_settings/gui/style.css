@@ -3,17 +3,17 @@
 }
 
 .nix-settings-root {
-  background: rgba(8, 10, 9, 0.985);
-  color: rgba(244, 246, 244, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 7, 8, 0.992);
+  color: rgba(246, 244, 246, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 14px;
 }
 
 .app-header {
   min-height: 42px;
   padding: 0 10px;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(16, 14, 16, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 11px;
 }
 
@@ -34,36 +34,43 @@ button,
 .app-title {
   font-size: 17px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.94);
 }
+
 .section-title {
   font-size: 11px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.48);
+  color: rgba(255, 255, 255, 0.52);
+  letter-spacing: 0.4px;
 }
+
 .stream-title {
   font-size: 13px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.90);
+  color: rgba(255, 255, 255, 0.91);
 }
+
 .device-detail,
 .stream-detail,
 .state-detail,
 .control-label {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.52);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.48);
 }
+
 .state-title {
   font-size: 15px;
   font-weight: 700;
 }
+
 .shortcut-hint {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.27);
+  color: rgba(255, 255, 255, 0.25);
 }
+
 .volume-value {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.68);
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .content {
@@ -71,35 +78,47 @@ button,
 }
 
 .card {
-  padding: 11px;
+  padding: 10px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.024);
+  background: rgba(14, 13, 15, 0.98);
   border: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.device-card {
+  min-height: 92px;
+}
+
+.streams-card {
+  background: rgba(11, 10, 12, 0.98);
 }
 
 button.pill,
 button.close-button {
   min-height: 28px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.76);
+  background: rgba(22, 20, 22, 0.98);
+  color: rgba(255, 255, 255, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.10);
   box-shadow: none;
 }
+
 button.pill {
-  padding: 0 12px;
+  padding: 0 11px;
 }
+
 button.pill:hover,
 button.close-button:hover {
-  background: rgba(255, 255, 255, 0.085);
-  color: rgba(255, 255, 255, 0.94);
+  background: rgba(34, 31, 34, 0.98);
+  color: rgba(255, 255, 255, 0.96);
   border-color: rgba(255, 255, 255, 0.20);
 }
+
 button.pill:checked {
-  background: rgba(255, 255, 255, 0.13);
-  color: rgba(255, 255, 255, 0.95);
-  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(42, 38, 42, 0.98);
+  color: rgba(255, 255, 255, 0.97);
+  border-color: rgba(255, 255, 255, 0.25);
 }
+
 button.close-button {
   min-width: 28px;
   padding: 0;
@@ -107,16 +126,17 @@ button.close-button {
 }
 
 combobox button {
-  min-height: 32px;
-  padding: 0 11px;
+  min-height: 30px;
+  padding: 0 10px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.035);
-  color: rgba(255, 255, 255, 0.88);
+  background: rgba(20, 18, 20, 0.98);
+  color: rgba(255, 255, 255, 0.90);
   border: 1px solid rgba(255, 255, 255, 0.09);
   box-shadow: none;
 }
+
 combobox button:hover {
-  background: rgba(255, 255, 255, 0.065);
+  background: rgba(29, 27, 29, 0.98);
   border-color: rgba(255, 255, 255, 0.16);
 }
 
@@ -126,6 +146,7 @@ combobox button:hover {
   background: rgba(217, 95, 95, 0.14);
   border: 1px solid rgba(217, 95, 95, 0.34);
 }
+
 .disconnected-banner {
   padding: 9px 11px;
   border-radius: 9px;
@@ -136,50 +157,67 @@ combobox button:hover {
 .volume-control {
   margin-top: 1px;
 }
+
 scale {
   min-height: 24px;
 }
+
 scale trough {
-  min-height: 6px;
+  min-height: 5px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.10);
 }
+
 scale highlight {
   border-radius: 999px;
-  background: rgba(190, 196, 190, 0.82);
+  background: rgba(224, 221, 225, 0.90);
 }
+
 scale slider {
-  min-width: 15px;
-  min-height: 15px;
+  min-width: 14px;
+  min-height: 14px;
   border-radius: 999px;
-  background: rgb(210, 214, 210);
-  border: 1px solid rgba(0, 0, 0, 0.55);
+  background: rgb(236, 233, 237);
+  border: 1px solid rgba(0, 0, 0, 0.70);
   box-shadow: none;
 }
 
-.stream-row {
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+flowboxchild {
+  padding: 0;
+  background: transparent;
 }
-.stream-row:last-child {
-  border-bottom-color: transparent;
+
+.stream-row {
+  min-width: 600px;
+  padding: 10px;
+  border-radius: 9px;
+  background: rgba(18, 16, 18, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.065);
+}
+
+.stream-row:hover {
+  background: rgba(23, 21, 23, 0.98);
+  border-color: rgba(255, 255, 255, 0.10);
 }
 
 scrolledwindow,
 viewport {
   background: transparent;
 }
+
 scrollbar.vertical {
   min-width: 10px;
   margin-left: 5px;
   background: transparent;
 }
+
 scrollbar slider {
   min-width: 5px;
   min-height: 36px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.17);
 }
+
 scrollbar slider:hover {
-  background: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.29);
 }
