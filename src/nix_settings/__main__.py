@@ -10,9 +10,9 @@ from nix_settings.version import __version__
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
         prog="nix-settings",
-        description="Native NixOS settings application",
+        description="GTK3 layer-shell sound center for NixOS",
     )
-    result.add_argument("command", nargs="?", choices=("sound", "doctor"), help="page or command")
+    result.add_argument("command", nargs="?", choices=("sound", "doctor"), help="command")
     result.add_argument("--version", action="version", version=f"nix-settings {__version__}")
     return result
 
