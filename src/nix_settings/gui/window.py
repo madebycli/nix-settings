@@ -83,8 +83,8 @@ class SettingsWindow:
         root.pack_start(self.sound_page.widget, True, True, 0)
         footer = self.Gtk.Label(label="Esc = close  •  Ctrl+R = refresh  •  Ctrl+Q = quit")
         footer.get_style_context().add_class("shortcut-hint")
-        footer.set_margin_top(4)
-        footer.set_margin_bottom(8)
+        footer.set_margin_top(3)
+        footer.set_margin_bottom(10)
         root.pack_end(footer, False, False, 0)
         return root
 
@@ -92,16 +92,25 @@ class SettingsWindow:
         header = self.Gtk.Box(orientation=self.Gtk.Orientation.HORIZONTAL, spacing=10)
         header.get_style_context().add_class("app-header")
         header.set_size_request(-1, HEADER_HEIGHT)
-        close = self.Gtk.Button(label="✕")
-        close.set_size_request(32, 32)
+        header.set_margin_top(10)
+        header.set_margin_start(12)
+        header.set_margin_end(12)
+        header.set_margin_bottom(2)
+
+        close = self.Gtk.Button(label="×")
+        close.set_size_request(30, 30)
         close.get_style_context().add_class("close-button")
         close.connect("clicked", lambda *_: self.window.close())
+
         title = self.Gtk.Label(label="Sound", xalign=0)
         title.get_style_context().add_class("app-title")
         title.set_hexpand(True)
+
         refresh = self.Gtk.Button(label="Refresh")
+        refresh.set_size_request(82, 30)
         refresh.get_style_context().add_class("pill")
         refresh.connect("clicked", lambda *_: self.sound_page.refresh())
+
         header.pack_start(close, False, False, 0)
         header.pack_start(title, True, True, 0)
         header.pack_end(refresh, False, False, 0)
