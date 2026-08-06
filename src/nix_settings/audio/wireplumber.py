@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+import threading
+import time
 from dataclasses import replace
 
 from nix_settings.audio.backend import AudioBackend
@@ -16,6 +18,8 @@ from nix_settings.audio.models import AudioDevice, AudioSnapshot, AudioStream
 from nix_settings.audio.pipewire import parse_pw_dump
 
 _VOLUME_RE = re.compile(r"Volume:\s*([0-9]+(?:\.[0-9]+)?)", re.IGNORECASE)
+_PENDING_SECONDS = 3.0
+_VOLUME_EPSILON = 0.015
 
 
 def parse_wpctl_volume(text: str) -> tuple[float, bool]:
@@ -30,6 +34,8 @@ def parse_wpctl_volume(text: str) -> tuple[float, bool]:
 class WirePlumberBackend(AudioBackend):
     def __init__(self, runner: CommandRunner | None = None) -> None:
         self.runner = runner or CommandRunner()
+        self._pending_lock = threading.Lock()
+        self._pending_volumes: dict[int, tuple[float, float]] = {}
 
     def snapshot(self) -> AudioSnapshot:
         snapshot = parse_pw_dump(self.runner.run(["pw-dump"]).stdout)
@@ -52,16 +58,55 @@ class WirePlumberBackend(AudioBackend):
         except (AudioCommandError, ValueError):
             return None
 
+    def _effective_volume(self, node_id: int, actual: float) -> float:
+        now = time.monotonic()
+        with self._pending_lock:
+            pending = self._pending_volumes.get(node_id)
+            if pending is None:
+                return actual
+            target, deadline = pending
+            if abs(actual - target) <= _VOLUME_EPSILON:
+                self._pending_volumes.pop(node_id, None)
+                return actual
+            if now < deadline:
+                return target
+            self._pending_volumes.pop(node_id, None)
+            return actual
+
     def _device_volume(self, device: AudioDevice) -> AudioDevice:
         state = self._live_volume(device.id)
-        return device if state is None else replace(device, volume=state[0], is_muted=state[1])
+        if state is None:
+            volume = self._effective_volume(device.id, device.volume)
+            return replace(device, volume=volume)
+        volume = self._effective_volume(device.id, state[0])
+        return replace(device, volume=volume, is_muted=state[1])
 
     def _stream_volume(self, stream: AudioStream) -> AudioStream:
         state = self._live_volume(stream.id)
-        return stream if state is None else replace(stream, volume=state[0], is_muted=state[1])
+        if state is None:
+            volume = self._effective_volume(stream.id, stream.volume)
+            return replace(stream, volume=volume)
+        volume = self._effective_volume(stream.id, state[0])
+        return replace(
+            stream,
+            volume=volume,
+            is_muted=state[1],
+            volume_is_writable=True,
+        )
 
     def set_volume(self, node_id: int, volume: float) -> None:
-        self.runner.run(set_volume_args(node_id, volume))
+        target = max(0.0, min(1.0, float(volume)))
+        with self._pending_lock:
+            self._pending_volumes[node_id] = (
+                target,
+                time.monotonic() + _PENDING_SECONDS,
+            )
+        try:
+            self.runner.run(set_volume_args(node_id, target))
+        except Exception:
+            with self._pending_lock:
+                self._pending_volumes.pop(node_id, None)
+            raise
 
     def set_muted(self, node_id: int, muted: bool) -> None:
         self.runner.run(set_mute_args(node_id, muted))
