@@ -2,19 +2,14 @@
   background: transparent;
 }
 
-/* Exact GIF Player picker shell values. */
 .nix-settings-root {
   background: rgba(14, 14, 14, 0.97);
-  color: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: @theme_fg_color;
+  border: 1px solid alpha(@theme_fg_color, 0.12);
   border-radius: 12px;
 }
 
-.app-header {
-  background: transparent;
-}
-
-.app-title,
+.picker-title,
 .section-title,
 button,
 .device-detail,
@@ -27,52 +22,52 @@ button,
   font-family: monospace;
 }
 
-.app-title {
-  font-size: 16px;
+.picker-title {
+  color: @theme_fg_color;
+  font-size: 20px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.90);
 }
 
 .section-title {
+  color: alpha(@theme_fg_color, 0.48);
   font-size: 11px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.45);
 }
 
 .stream-title {
+  color: alpha(@theme_fg_color, 0.90);
   font-size: 13px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.86);
 }
 
 .device-detail,
 .stream-detail,
 .state-detail,
 .control-label {
+  color: alpha(@theme_fg_color, 0.56);
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.45);
 }
 
 .state-title {
+  color: alpha(@theme_fg_color, 0.90);
   font-size: 15px;
   font-weight: 700;
 }
 
 .volume-value {
+  color: alpha(@theme_fg_color, 0.78);
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.65);
 }
 
 .content {
-  padding: 0 14px 14px 14px;
+  padding: 12px 14px 14px 14px;
 }
 
-/* Exact GIF Player thumb-tile values. */
 .card,
 .stream-row {
-  background: rgba(255, 255, 255, 0.03);
+  background: alpha(@theme_fg_color, 0.03);
+  border: 1px solid alpha(@theme_fg_color, 0.08);
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .card {
@@ -80,7 +75,7 @@ button,
 }
 
 .device-card {
-  min-height: 92px;
+  min-height: 94px;
 }
 
 .streams-card {
@@ -92,15 +87,14 @@ button,
 }
 
 .stream-row:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.20);
+  background: alpha(@theme_fg_color, 0.06);
+  border-color: alpha(@theme_fg_color, 0.18);
 }
 
-/* Exact GIF Player close button. */
 .x-btn {
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: alpha(@theme_fg_color, 0.05);
+  color: @theme_fg_color;
+  border: 1px solid alpha(@theme_fg_color, 0.10);
   border-radius: 999px;
   min-width: 30px;
   min-height: 30px;
@@ -109,40 +103,41 @@ button,
 }
 
 .x-btn:hover {
-  background: rgba(255, 255, 255, 0.10);
-  border-color: rgba(255, 255, 255, 0.24);
+  background: alpha(@theme_fg_color, 0.10);
+  border-color: alpha(@theme_fg_color, 0.24);
 }
 
-/* Exact GIF Player chip values, reused for Refresh and Mute. */
-.chip {
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  border-radius: 999px;
-  padding: 2px 14px;
+.flat-action {
+  background: alpha(@theme_fg_color, 0.05);
+  color: alpha(@theme_fg_color, 0.84);
+  border: 1px solid alpha(@theme_fg_color, 0.13);
+  border-radius: 8px;
+  min-height: 30px;
+  padding: 3px 14px;
   font-size: 12px;
   font-family: monospace;
+  box-shadow: none;
 }
 
-.chip:hover {
-  background: rgba(255, 255, 255, 0.10);
-  color: rgba(255, 255, 255, 0.90);
-  border-color: rgba(255, 255, 255, 0.24);
+.flat-action:hover {
+  background: alpha(@theme_fg_color, 0.10);
+  color: @theme_fg_color;
+  border-color: alpha(@theme_fg_color, 0.26);
 }
 
-.chip:checked {
-  background: rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.95);
-  border-color: rgba(255, 255, 255, 0.30);
+.flat-action:checked {
+  background: alpha(@theme_selected_bg_color, 0.24);
+  color: @theme_fg_color;
+  border-color: alpha(@theme_selected_bg_color, 0.70);
 }
 
-/* Exact GIF Player entry palette applied to selectors. */
 combobox button {
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: alpha(@theme_fg_color, 0.05);
+  color: alpha(@theme_fg_color, 0.90);
+  border: 1px solid alpha(@theme_fg_color, 0.12);
   border-radius: 6px;
-  padding: 6px 10px;
+  min-height: 32px;
+  padding: 0 10px;
   font-size: 12px;
   font-family: monospace;
   box-shadow: none;
@@ -150,7 +145,7 @@ combobox button {
 
 combobox button:hover,
 combobox button:focus {
-  border-color: rgba(255, 255, 255, 0.40);
+  border-color: alpha(@theme_selected_bg_color, 0.72);
 }
 
 .error-banner {
@@ -168,31 +163,36 @@ combobox button:focus {
 }
 
 .volume-control {
-  margin-top: 1px;
+  margin: 0;
 }
 
 scale {
-  min-height: 24px;
+  min-height: 28px;
 }
 
 scale trough {
   min-height: 5px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.10);
+  background: alpha(@theme_fg_color, 0.11);
 }
 
 scale highlight {
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.82);
+  background: alpha(@theme_selected_bg_color, 0.86);
 }
 
 scale slider {
   min-width: 14px;
   min-height: 14px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.90);
-  border: 1px solid rgba(0, 0, 0, 0.65);
+  background: @theme_fg_color;
+  border: 1px solid alpha(@theme_bg_color, 0.82);
   box-shadow: none;
+}
+
+separator {
+  background: alpha(@theme_fg_color, 0.10);
+  min-height: 1px;
 }
 
 scrolledwindow,
@@ -215,9 +215,9 @@ scrollbar slider {
   min-width: 5px;
   min-height: 36px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
+  background: alpha(@theme_fg_color, 0.16);
 }
 
 scrollbar slider:hover {
-  background: rgba(255, 255, 255, 0.28);
+  background: alpha(@theme_fg_color, 0.28);
 }
