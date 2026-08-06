@@ -2,8 +2,21 @@ from __future__ import annotations
 
 import pytest
 
-from nix_settings.audio.commands import CommandResult
-from nix_settings.audio.wireplumber import WirePlumberBackend, parse_wpctl_volume
+from nix_settings.audio.models import AudioDirection, AudioStream
+from nix_settings.audio.wireplumber import parse_wpctl_volume, visible_recording_streams
+
+
+def _recording(stream_id: int, app: str, media: str | None) -> AudioStream:
+    return AudioStream(
+        id=stream_id,
+        application_name=app,
+        application_icon=None,
+        media_name=media,
+        direction=AudioDirection.RECORDING,
+        device_id=9,
+        volume=1.0,
+        volume_is_writable=True,
+    )
 
 
 def test_parse_wpctl_volume() -> None:
@@ -20,13 +33,13 @@ def test_parse_wpctl_volume_rejects_unknown_output() -> None:
         parse_wpctl_volume("unknown")
 
 
-def test_pending_volume_masks_stale_snapshot_until_confirmed() -> None:
-    class Runner:
-        def run(self, _args: list[str]) -> CommandResult:
-            return CommandResult("", "", 0)
-
-    backend = WirePlumberBackend(Runner())  # type: ignore[arg-type]
-    backend.set_volume(7, 0.90)
-    assert backend._effective_volume(7, 0.22) == 0.90
-    assert backend._effective_volume(7, 0.90) == 0.90
-    assert 7 not in backend._pending_volumes
+def test_recording_streams_only_keep_real_apps_once() -> None:
+    streams = (
+        _recording(1, "PulseAudio-Lautstärkeregler", "Ausschlagserkennung"),
+        _recording(2, "PulseAudio-Lautstärkeregler", "Ausschlagserkennung"),
+        _recording(3, "vesktop", "RecordStream"),
+        _recording(4, "vesktop", "RecordStream"),
+        _recording(5, "Unknown application", None),
+    )
+    visible = visible_recording_streams(streams)
+    assert [stream.application_name for stream in visible] == ["vesktop"]
