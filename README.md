@@ -25,7 +25,7 @@ The Sound center uses a fixed 2×2 workspace:
 
 Playback and Recording scroll independently. Application rows keep a stable two-line geometry: application identity and Route on the first line, then Volume, percentage, and Mute on the second line.
 
-On normal desktop and 15-inch monitor sizes, every stream Route selector uses the same fixed 300 logical-pixel width as the LibreWolf reference row. Short application names cannot stretch it. On genuinely narrow monitors, the selector is reduced from the available panel width so the application identity and Route controls do not overlap.
+Starting with version 0.2.7, every stream Route selector uses the same fixed 300 logical-pixel width as the LibreWolf reference row on normal desktop and 15-inch monitor sizes. Short application names cannot stretch it. On genuinely narrow monitors, the selector is reduced from the available panel width so the application identity and Route controls do not overlap.
 
 ## Keyboard
 
