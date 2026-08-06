@@ -62,7 +62,7 @@
             mkdir -p "$HOME" "$XDG_RUNTIME_DIR"
             chmod 700 "$XDG_RUNTIME_DIR"
             nix-settings --help | grep -q doctor
-            nix-settings --version | grep -q 'nix-settings 0.2.5'
+            nix-settings --version | grep -q 'nix-settings 0.2.6'
             set +e
             nix-settings doctor > doctor.txt
             result=$?
