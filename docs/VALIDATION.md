@@ -1,20 +1,19 @@
 # Validation record
 
-Validation performed in the implementation environment:
+Validation performed while preparing the GTK3 layer-shell repair:
 
-- `python -m compileall -q src`: passed
-- `pytest -q`: passed, 18 tests
-- `PYTHONPATH=src python -m nix_settings.__main__ --help`: passed
-- `PYTHONPATH=src python -m nix_settings.__main__ --version`: passed
+- changed Python files compile with `python -m compileall -q`;
+- focused CLI and volume-format tests pass: 5 tests;
+- the implementation was checked against the working GTK3 layer-shell patterns in `madebycli/git-backup` and `madebycli/GIF-Player`.
 
-Not executed in this environment because the executables or desktop services were unavailable:
+The following must be executed by Nix or on a real target desktop before merge:
 
-- `ruff check .`
-- `mypy src`
-- `nix flake check --print-build-logs`
-- `nix build .#nix-settings --print-build-logs`
-- built-package doctor smoke test
-- real GTK4 Layer Shell visual test
-- real PipeWire and WirePlumber live-audio test
+- `pytest -q` for the complete suite;
+- `ruff check .`;
+- `mypy src`;
+- `nix flake check --print-build-logs`;
+- `nix build .#nix-settings --print-build-logs`;
+- `./result/bin/nix-settings doctor`;
+- `./result/bin/nix-settings sound` on Wayland with PipeWire and WirePlumber.
 
-The Flake defines checks for compilation, pytest, Ruff, mypy, CLI smoke behavior and runtime-closure policy. Visual behavior and live audio controls must still be tested in a real Wayland desktop session with PipeWire and WirePlumber.
+The live test must confirm that the compositor reports a layer surface, the window does not float, sliders remain draggable, selection changes fire once, and scrolling remains stable while PipeWire events arrive.

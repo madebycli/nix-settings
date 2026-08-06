@@ -1,39 +1,33 @@
 # Nix Settings
 
-Nix Settings is a native, keyboard-friendly settings application for NixOS. The first milestone provides a reusable GTK4 application shell and a functional Sound page backed by PipeWire and WirePlumber.
+Nix Settings is a focused GTK3 layer-shell sound center for NixOS, PipeWire and WirePlumber.
 
-## Status
+## Sound center
+
+The application opens as a real Wayland layer surface. It intentionally does not fall back to a floating desktop window. The Sound command shows only the sound center: no settings sidebar and no unfinished navigation entries.
 
 Implemented:
 
-- GTK4 application shell with GTK4 Layer Shell on supported Wayland compositors
-- normal GTK4 window fallback when Layer Shell or Wayland is unavailable
-- single graphical instance through `Gtk.Application`
-- navigation placeholders for future settings pages
-- typed PipeWire device, stream and snapshot models
-- default output and microphone selection
-- volume and mute controls capped at 100%
-- playback and recording stream routing
-- per-stream controls only when the capability is writable
-- event-driven `pw-dump --monitor` refresh with bounded reconnect backoff
-- `doctor`, `--version` and `--help` commands
-- Nix package, app, development shell, checks, NixOS module and Home Manager module
-
-Not implemented: updates, generations, storage cleanup, network, Bluetooth management and integrations. Bluetooth audio devices still appear on the Sound page when PipeWire exposes them.
+- fixed, monitor-bounded overlay geometry;
+- exclusive keyboard focus through GTK Layer Shell;
+- default output and microphone selection;
+- output and microphone volume and mute controls capped at 100%;
+- playback stream volume, mute and routing;
+- recording stream mute and routing, with gain only when writable;
+- event-driven PipeWire refresh;
+- preserved scroll position during external audio changes;
+- debounced sliders and monitor events;
+- signal-safe selectors that do not trigger duplicate operations during initialization;
+- `doctor`, `--version` and `--help` commands.
 
 ## Run
 
 ```bash
-nix run .#nix-settings
-nix run .#nix-settings -- sound
-nix run .#nix-settings -- doctor
+nix run github:madebycli/nix-settings -- doctor
+nix run github:madebycli/nix-settings -- sound
 ```
 
-After publishing:
-
-```bash
-nix run github:madebycli/nix-settings
-```
+A Wayland compositor with layer-shell support is required. Nix Settings exits with a clear error instead of opening a normal floating window when Wayland is unavailable.
 
 ## Development
 
@@ -46,21 +40,13 @@ mypy src
 nix flake check --print-build-logs
 nix build .#nix-settings --print-build-logs
 ./result/bin/nix-settings doctor
-./result/bin/nix-settings --help
+./result/bin/nix-settings sound
 ```
 
 ## Architecture
 
-- `audio/` owns structured discovery, parsing, commands and monitoring.
-- `gui/` owns layout, reusable widgets and pages; it never assembles raw PipeWire commands.
-- GTK updates are dispatched through `GLib.idle_add`.
-- subprocess calls use argument arrays, timeouts and `shell=False`.
-- all geometry and spacing constants live in `gui/layout.py`.
-
-## GTK baseline decision
-
-The supplied project brief named GTK3, while the newer supplied design baseline makes GTK4 and Gtk4LayerShell mandatory for new projects. This implementation follows the newer baseline and keeps a normal GTK4 fallback for unsupported sessions.
-
-## Runtime notes
-
-Live level meters remain neutral unless a future backend exposes real peak data. The application does not invent activity levels or unsupported capture-gain controls.
+- `audio/` owns structured PipeWire discovery and WirePlumber commands.
+- `gui/` owns the GTK3 layer surface and sound widgets.
+- GTK updates enter the main loop through `GLib.idle_add` and timeouts.
+- subprocess calls use explicit argument arrays and `shell=False`.
+- geometry and spacing live in `gui/layout.py`.
