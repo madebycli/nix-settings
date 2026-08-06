@@ -1,0 +1,7 @@
+[
+  {"id": 1, "type": "PipeWire:Interface:Metadata", "metadata": [
+    {"key": "default.configured.audio.sink", "value": "{\"name\":\"usb-output\"}"}
+  ]},
+  {"id": 30, "type": "PipeWire:Interface:Node", "info": {"props": {"media.class": "Audio/Sink", "node.name": "built-in", "node.description": "Built-in Speakers"}}},
+  {"id": 31, "type": "PipeWire:Interface:Node", "info": {"props": {"media.class": "Audio/Sink", "node.name": "usb-output", "node.description": "USB DAC"}}}
+]

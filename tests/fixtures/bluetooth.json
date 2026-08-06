@@ -1,0 +1,6 @@
+[
+  {"id": 20, "type": "PipeWire:Interface:Node", "info": {"props": {
+    "media.class": "Audio/Sink", "node.name": "bluez_output.headset", "node.description": "WH-1000XM5",
+    "active.port": "headset-output", "active.profile": "a2dp-sink", "volume": [0.5, 0.7]
+  }, "params": {"EnumProfile": [{"name": "a2dp-sink"}, {"name": "headset-head-unit"}]}}}
+]

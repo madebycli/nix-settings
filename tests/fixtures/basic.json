@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "type": "PipeWire:Interface:Metadata",
+    "info": {"metadata": [
+      {"key": "default.audio.sink", "value": "{\"name\":\"alsa_output.pci\"}"},
+      {"key": "default.audio.source", "value": "{\"name\":\"alsa_input.pci\"}"}
+    ]}
+  },
+  {
+    "id": 42,
+    "type": "PipeWire:Interface:Node",
+    "info": {
+      "props": {
+        "media.class": "Audio/Sink",
+        "node.name": "alsa_output.pci",
+        "node.description": "Built-in Audio Analog Stereo",
+        "volume": 0.72,
+        "mute": false,
+        "active.port": "analog-output-speaker",
+        "active.profile": "output:analog-stereo"
+      },
+      "params": {"EnumRoute": [{"name": "analog-output-speaker"}], "EnumProfile": [{"name": "output:analog-stereo"}]}
+    }
+  },
+  {
+    "id": 43,
+    "type": "PipeWire:Interface:Node",
+    "info": {
+      "props": {
+        "media.class": "Audio/Source",
+        "node.name": "alsa_input.pci",
+        "node.description": "Built-in Microphone",
+        "volume": 0.55,
+        "mute": true,
+        "active.port": "analog-input-internal-mic",
+        "active.profile": "input:analog-stereo"
+      },
+      "params": {"EnumRoute": [{"name": "analog-input-internal-mic"}], "EnumProfile": [{"name": "input:analog-stereo"}]}
+    }
+  }
+]
