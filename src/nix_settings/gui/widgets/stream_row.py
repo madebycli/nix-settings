@@ -18,16 +18,19 @@ class StreamRow:
         on_volume: Callable[[int, float], None],
         on_mute: Callable[[int, bool], None],
         on_move: Callable[[int, int], None],
+        on_interaction: Callable[[bool], None],
+        on_scroll: Callable[[Any], None],
     ) -> None:
-        self.widget = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        self.widget = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7)
         self.widget.get_style_context().add_class("stream-row")
 
-        header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=9)
         icon = Gtk.Image.new_from_icon_name(
             stream.application_icon or "audio-x-generic-symbolic",
             Gtk.IconSize.BUTTON,
         )
-        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        icon.set_size_request(24, 24)
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
         title = Gtk.Label(label=stream.application_name, xalign=0)
         title.get_style_context().add_class("stream-title")
         title.set_ellipsize(3)
@@ -49,15 +52,16 @@ class StreamRow:
         header.pack_start(text, True, True, 0)
         self.widget.pack_start(header, False, False, 0)
 
-        route_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        route_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=9)
         route_label = Gtk.Label(label="Route", xalign=0)
-        route_label.set_size_request(72, -1)
+        route_label.set_size_request(58, -1)
         route_label.get_style_context().add_class("control-label")
         routing = DeviceSelector(
             Gtk,
             devices,
             stream.device_id,
             lambda device_id: on_move(stream.id, device_id),
+            on_scroll,
         )
         route_row.pack_start(route_label, False, False, 0)
         route_row.pack_start(routing.widget, True, True, 0)
@@ -71,12 +75,13 @@ class StreamRow:
                 stream.is_muted,
                 lambda value: on_volume(stream.id, value),
                 lambda muted: on_mute(stream.id, muted),
+                on_interaction,
             )
             self.widget.pack_start(controls.widget, False, False, 0)
         else:
             mute = Gtk.ToggleButton(label="Block capture")
             mute.set_active(stream.is_muted)
-            mute.set_size_request(120, 34)
+            mute.set_size_request(112, 30)
             mute.get_style_context().add_class("pill")
             mute.connect("toggled", lambda button: on_mute(stream.id, bool(button.get_active())))
             self.widget.pack_start(mute, False, False, 0)
