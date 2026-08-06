@@ -91,32 +91,42 @@ class SettingsWindow:
         root = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=0)
         root.get_style_context().add_class("nix-settings-root")
         root.pack_start(self._header(), False, False, 0)
+        root.pack_start(self.Gtk.Separator(), False, False, 0)
         root.pack_start(self.sound_page.widget, True, True, 0)
         return root
 
     def _header(self) -> Any:
-        header = self.Gtk.Box(orientation=self.Gtk.Orientation.HORIZONTAL, spacing=10)
-        header.get_style_context().add_class("app-header")
-        header.set_margin_top(14)
-        header.set_margin_bottom(10)
-        header.set_margin_start(14)
-        header.set_margin_end(14)
+        header = self.Gtk.Grid()
+        header.set_column_spacing(10)
+        header.set_hexpand(True)
+        header.set_size_request(-1, 32)
+        header.set_margin_top(6)
+        header.set_margin_bottom(6)
+        header.set_margin_start(12)
+        header.set_margin_end(12)
 
         close = self.Gtk.Button(label="✕")
+        close.set_size_request(32, 32)
         close.get_style_context().add_class("x-btn")
         close.connect("clicked", lambda *_: self.window.close())
+        header.attach(close, 0, 0, 1, 1)
 
         title = self.Gtk.Label(label="Sound", xalign=0)
-        title.get_style_context().add_class("app-title")
-        title.set_hexpand(True)
+        title.set_halign(self.Gtk.Align.START)
+        title.set_valign(self.Gtk.Align.CENTER)
+        title.get_style_context().add_class("picker-title")
+        header.attach(title, 1, 0, 1, 1)
+
+        spacer = self.Gtk.Box()
+        spacer.set_hexpand(True)
+        header.attach(spacer, 2, 0, 1, 1)
 
         refresh = self.Gtk.Button(label="Refresh")
-        refresh.get_style_context().add_class("chip")
+        refresh.set_size_request(88, 30)
+        refresh.set_halign(self.Gtk.Align.END)
+        refresh.get_style_context().add_class("flat-action")
         refresh.connect("clicked", lambda *_: self.sound_page.refresh())
-
-        header.pack_start(close, False, False, 0)
-        header.pack_start(title, True, True, 0)
-        header.pack_end(refresh, False, False, 0)
+        header.attach(refresh, 3, 0, 1, 1)
         return header
 
     def _close_requested(self, _window: Any, _event: Any) -> bool:
