@@ -26,6 +26,8 @@ class SoundPage:
         self._refresh_again = False
         self._destroyed = False
         self._debounce_id: int | None = None
+        self._interaction_count = 0
+        self._pending_snapshot: AudioSnapshot | None = None
         self.monitor = PipeWireMonitor(self._monitor_changed, self._monitor_disconnected)
 
         self.widget = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
@@ -37,10 +39,12 @@ class SoundPage:
         self.scroller = Gtk.ScrolledWindow()
         self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.scroller.set_shadow_type(Gtk.ShadowType.NONE)
+        self.scroller.set_overlay_scrolling(False)
         self.scroller.set_vexpand(True)
         self.content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        self.content.set_margin_bottom(14)
-        self.scroller.add(self.content)
+        self.content.set_margin_right(8)
+        self.content.set_margin_bottom(16)
+        self.scroller.add_with_viewport(self.content)
         self.widget.pack_start(self.scroller, True, True, 0)
         self._render_loading()
 
@@ -73,6 +77,10 @@ class SoundPage:
     def _apply_snapshot(self, snapshot: AudioSnapshot) -> bool:
         if self._destroyed:
             return False
+        if self._interaction_count > 0:
+            self._pending_snapshot = snapshot
+            return False
+
         adjustment = self.scroller.get_vadjustment()
         previous_scroll = adjustment.get_value() if adjustment is not None else 0.0
         self.snapshot = snapshot
@@ -86,23 +94,13 @@ class SoundPage:
             devices = self.Gtk.Box(orientation=self.Gtk.Orientation.HORIZONTAL, spacing=10)
             devices.set_homogeneous(True)
             devices.pack_start(
-                self._device_card(
-                    "OUTPUT",
-                    outputs,
-                    snapshot.default_output_id,
-                    AudioDirection.OUTPUT,
-                ),
+                self._device_card("OUTPUT", outputs, snapshot.default_output_id),
                 True,
                 True,
                 0,
             )
             devices.pack_start(
-                self._device_card(
-                    "MICROPHONE",
-                    inputs,
-                    snapshot.default_input_id,
-                    AudioDirection.INPUT,
-                ),
+                self._device_card("INPUT", inputs, snapshot.default_input_id),
                 True,
                 True,
                 0,
@@ -157,10 +155,8 @@ class SoundPage:
         heading: str,
         devices: Sequence[AudioDevice],
         selected_id: int | None,
-        direction: AudioDirection,
     ) -> Any:
-        del direction
-        card = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=10)
+        card = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=9)
         card.get_style_context().add_class("card")
         label = self.Gtk.Label(label=heading, xalign=0)
         label.get_style_context().add_class("section-title")
@@ -177,6 +173,7 @@ class SoundPage:
             devices,
             selected.id,
             lambda device_id: self._operation(lambda: self.backend.set_default(device_id)),
+            self._scroll_from_selector,
         )
         card.pack_start(selector.widget, False, False, 0)
 
@@ -200,6 +197,7 @@ class SoundPage:
             selected.is_muted,
             lambda value: self._operation(lambda: self.backend.set_volume(selected.id, value)),
             lambda muted: self._operation(lambda: self.backend.set_muted(selected.id, muted)),
+            self._interaction_changed,
         )
         card.pack_start(controls.widget, False, False, 0)
         return card
@@ -211,7 +209,7 @@ class SoundPage:
         devices: Sequence[AudioDevice],
         empty_text: str,
     ) -> Any:
-        card = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=8)
+        card = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=7)
         card.get_style_context().add_class("card")
         label = self.Gtk.Label(label=heading, xalign=0)
         label.get_style_context().add_class("section-title")
@@ -236,9 +234,47 @@ class SoundPage:
                 lambda stream_id, device_id: self._operation(
                     lambda: self.backend.move_stream(stream_id, device_id)
                 ),
+                self._interaction_changed,
+                self._scroll_from_selector,
             )
             card.pack_start(row.widget, False, False, 0)
         return card
+
+    def _interaction_changed(self, active: bool) -> None:
+        if active:
+            self._interaction_count += 1
+            return
+        self._interaction_count = max(0, self._interaction_count - 1)
+        if self._interaction_count == 0 and self._pending_snapshot is not None:
+            pending = self._pending_snapshot
+            self._pending_snapshot = None
+            self.GLib.timeout_add(120, self._apply_deferred_snapshot, pending)
+
+    def _apply_deferred_snapshot(self, snapshot: AudioSnapshot) -> bool:
+        if self._interaction_count == 0:
+            return self._apply_snapshot(snapshot)
+        self._pending_snapshot = snapshot
+        return False
+
+    def _scroll_from_selector(self, event: Any) -> None:
+        adjustment = self.scroller.get_vadjustment()
+        if adjustment is None:
+            return
+        direction = int(getattr(event, "direction", 4))
+        delta = 0.0
+        if direction == 0:
+            delta = -1.0
+        elif direction == 1:
+            delta = 1.0
+        else:
+            try:
+                success, _delta_x, delta_y = event.get_scroll_deltas()
+                delta = float(delta_y) if success else 0.0
+            except (AttributeError, TypeError, ValueError):
+                delta = 0.0
+        step = max(48.0, adjustment.get_step_increment() * 3.0)
+        upper = max(0.0, adjustment.get_upper() - adjustment.get_page_size())
+        adjustment.set_value(max(0.0, min(upper, adjustment.get_value() + delta * step)))
 
     def _operation(self, operation: Callable[[], None]) -> None:
         def worker() -> None:
@@ -271,9 +307,12 @@ class SoundPage:
     def _queue_monitor_refresh(self) -> bool:
         if self._destroyed:
             return False
+        if self._interaction_count > 0:
+            self._refresh_again = True
+            return False
         if self._debounce_id is not None:
             self.GLib.source_remove(self._debounce_id)
-        self._debounce_id = self.GLib.timeout_add(300, self._run_monitor_refresh)
+        self._debounce_id = self.GLib.timeout_add(450, self._run_monitor_refresh)
         return False
 
     def _run_monitor_refresh(self) -> bool:
