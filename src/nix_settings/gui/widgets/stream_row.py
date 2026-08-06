@@ -12,6 +12,7 @@ class StreamRow:
     def __init__(
         self,
         Gtk: Any,
+        GLib: Any,
         stream: AudioStream,
         devices: Sequence[AudioDevice],
         on_volume: Callable[[int, float], None],
@@ -19,51 +20,63 @@ class StreamRow:
         on_move: Callable[[int, int], None],
     ) -> None:
         self.widget = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        self.widget.add_css_class("stream-row")
+        self.widget.get_style_context().add_class("stream-row")
+
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        icon = Gtk.Image.new_from_icon_name(stream.application_icon or "audio-x-generic-symbolic")
-        icon.set_pixel_size(24)
+        icon = Gtk.Image.new_from_icon_name(
+            stream.application_icon or "audio-x-generic-symbolic",
+            Gtk.IconSize.BUTTON,
+        )
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         title = Gtk.Label(label=stream.application_name, xalign=0)
-        title.add_css_class("stream-title")
+        title.get_style_context().add_class("stream-title")
         title.set_ellipsize(3)
         title.set_tooltip_text(stream.application_name)
-        detail_text = stream.media_name or (
-            "Microphone capture" if stream.direction is AudioDirection.RECORDING else "Audio playback"
+        default_detail = (
+            "Microphone capture"
+            if stream.direction is AudioDirection.RECORDING
+            else "Audio playback"
         )
+        detail_text = stream.media_name or default_detail
         detail = Gtk.Label(label=detail_text, xalign=0)
-        detail.add_css_class("stream-detail")
+        detail.get_style_context().add_class("stream-detail")
         detail.set_ellipsize(3)
         detail.set_tooltip_text(detail_text)
-        text.append(title)
-        text.append(detail)
+        text.pack_start(title, False, False, 0)
+        text.pack_start(detail, False, False, 0)
         text.set_hexpand(True)
-        activity = Gtk.Label(label="ACTIVE" if stream.is_active else "IDLE")
-        activity.add_css_class("status-chip")
-        header.append(icon)
-        header.append(text)
-        header.append(activity)
-        self.widget.append(header)
+        header.pack_start(icon, False, False, 0)
+        header.pack_start(text, True, True, 0)
+        self.widget.pack_start(header, False, False, 0)
 
+        route_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        route_label = Gtk.Label(label="Route", xalign=0)
+        route_label.set_size_request(72, -1)
+        route_label.get_style_context().add_class("control-label")
         routing = DeviceSelector(
             Gtk,
             devices,
             stream.device_id,
             lambda device_id: on_move(stream.id, device_id),
         )
-        self.widget.append(routing.widget)
+        route_row.pack_start(route_label, False, False, 0)
+        route_row.pack_start(routing.widget, True, True, 0)
+        self.widget.pack_start(route_row, False, False, 0)
+
         if stream.volume_is_writable:
             controls = VolumeControl(
                 Gtk,
+                GLib,
                 stream.volume,
                 stream.is_muted,
                 lambda value: on_volume(stream.id, value),
                 lambda muted: on_mute(stream.id, muted),
             )
-            self.widget.append(controls.widget)
+            self.widget.pack_start(controls.widget, False, False, 0)
         else:
-            mute = Gtk.ToggleButton(label="Capture blocked" if stream.is_muted else "Block capture")
-            mute.add_css_class("pill")
+            mute = Gtk.ToggleButton(label="Block capture")
             mute.set_active(stream.is_muted)
+            mute.set_size_request(120, 34)
+            mute.get_style_context().add_class("pill")
             mute.connect("toggled", lambda button: on_mute(stream.id, bool(button.get_active())))
-            self.widget.append(mute)
+            self.widget.pack_start(mute, False, False, 0)

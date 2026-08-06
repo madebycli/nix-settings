@@ -15,21 +15,25 @@ class DeviceSelector:
         on_selected: Callable[[int], None],
     ) -> None:
         self._ids: list[int] = []
-        self.widget = Gtk.DropDown.new_from_strings([])
-        names: list[str] = []
-        selected = 0
+        self._selected_id = selected_id
+        self.widget = Gtk.ComboBoxText()
+        active_index = 0
         for index, device in enumerate(devices):
             self._ids.append(device.id)
-            names.append(device.description)
+            self.widget.append_text(device.description)
             if device.id == selected_id:
-                selected = index
-        self.widget.set_model(Gtk.StringList.new(names))
-        if names:
-            self.widget.set_selected(selected)
+                active_index = index
+        if self._ids:
+            self.widget.set_active(active_index)
         self.widget.set_hexpand(True)
-        self.widget.connect("notify::selected", self._changed, on_selected)
+        self.widget.connect("changed", self._changed, on_selected)
 
-    def _changed(self, dropdown: Any, _param: Any, callback: Callable[[int], None]) -> None:
-        index = int(dropdown.get_selected())
-        if 0 <= index < len(self._ids):
-            callback(self._ids[index])
+    def _changed(self, combo: Any, callback: Callable[[int], None]) -> None:
+        index = int(combo.get_active())
+        if not 0 <= index < len(self._ids):
+            return
+        selected_id = self._ids[index]
+        if selected_id == self._selected_id:
+            return
+        self._selected_id = selected_id
+        callback(selected_id)
