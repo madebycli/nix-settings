@@ -1,19 +1,20 @@
-# Validation record
+# Validation
 
-Validation performed while preparing the GTK3 layer-shell repair:
+## Automated
 
-- changed Python files compile with `python -m compileall -q`;
-- focused CLI and volume-format tests pass: 5 tests;
-- the implementation was checked against the working GTK3 layer-shell patterns in `madebycli/git-backup` and `madebycli/GIF-Player`.
+```bash
+python -m compileall -q src
+pytest -q
+ruff check .
+mypy src
+nix flake check
+```
 
-The following must be executed by Nix or on a real target desktop before merge:
+## Live Wayland and PipeWire validation
 
-- `pytest -q` for the complete suite;
-- `ruff check .`;
-- `mypy src`;
-- `nix flake check --print-build-logs`;
-- `nix build .#nix-settings --print-build-logs`;
-- `./result/bin/nix-settings doctor`;
-- `./result/bin/nix-settings sound` on Wayland with PipeWire and WirePlumber.
+```bash
+nix-settings doctor
+nix-settings sound
+```
 
-The live test must confirm that the compositor reports a layer surface, the window does not float, sliders remain draggable, selection changes fire once, and scrolling remains stable while PipeWire events arrive.
+Confirm that the window is a GtkLayerShell surface, opens at its final size, and keeps the 2x2 workspace. Recording should contain only real apps. Sliders must remain stable during PipeWire events. Every stream Route selector must keep the same 300 logical-pixel width on normal and 15-inch displays, with a smaller non-overlapping fallback on narrow monitors. Long labels must ellipsize instead of resizing rows. The close control must stay circular and theme colors must be respected.
