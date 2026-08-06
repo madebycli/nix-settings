@@ -29,22 +29,28 @@ class VolumeControl:
 
         self.widget = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self.widget.get_style_context().add_class("volume-control")
+        self.widget.set_hexpand(True)
+        self.widget.set_size_request(-1, 32)
+        self.widget.set_valign(Gtk.Align.CENTER)
 
         self.scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1)
-        self.scale.set_size_request(190, -1)
+        self.scale.set_size_request(220, 28)
         self.scale.set_hexpand(True)
         self.scale.set_draw_value(False)
         self.scale.set_tooltip_text("Drag to change volume")
+        self.scale.set_valign(Gtk.Align.CENTER)
 
         self.percent = Gtk.Label()
-        self.percent.set_size_request(42, -1)
+        self.percent.set_size_request(44, 30)
         self.percent.set_xalign(1.0)
+        self.percent.set_valign(Gtk.Align.CENTER)
         self.percent.get_style_context().add_class("volume-value")
 
         self.mute = Gtk.ToggleButton(label="Mute")
-        self.mute.set_size_request(62, 30)
+        self.mute.set_size_request(72, 30)
+        self.mute.set_valign(Gtk.Align.CENTER)
         self.mute.set_tooltip_text("Mute this audio source")
-        self.mute.get_style_context().add_class("chip")
+        self.mute.get_style_context().add_class("flat-action")
 
         self.widget.pack_start(self.scale, True, True, 0)
         self.widget.pack_start(self.percent, False, False, 0)
