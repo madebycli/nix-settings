@@ -27,22 +27,24 @@ def run_gui(page: str = "sound") -> int:
         print(f"Nix Settings cannot load GTK3 Layer Shell: {exc}", file=sys.stderr)
         return 1
 
-    class Application(Gtk.Application):
-        def __init__(self) -> None:
-            super().__init__(application_id=APPLICATION_ID, flags=Gio.ApplicationFlags.FLAGS_NONE)
-            self.settings_window: SettingsWindow | None = None
+    window: SettingsWindow | None = None
 
-        def do_activate(self) -> None:
-            if self.settings_window is None:
-                self.settings_window = SettingsWindow(
-                    Gtk,
-                    Gdk,
-                    GLib,
-                    GtkLayerShell,
-                    self,
-                    page,
-                )
-            self.settings_window.present()
+    def activate(application: Any) -> None:
+        nonlocal window
+        if window is None:
+            window = SettingsWindow(
+                Gtk,
+                Gdk,
+                GLib,
+                GtkLayerShell,
+                application,
+                page,
+            )
+        window.present()
 
-    application: Any = Application()
+    application = Gtk.Application(
+        application_id=APPLICATION_ID,
+        flags=Gio.ApplicationFlags.FLAGS_NONE,
+    )
+    application.connect("activate", activate)
     return int(application.run(["nix-settings"]))

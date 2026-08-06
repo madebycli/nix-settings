@@ -44,6 +44,7 @@ class VolumeControl:
         self.scale.connect("button-release-event", self._drag_finished)
         self.scale.connect("value-changed", self._volume_changed)
         self.mute.connect("toggled", self._mute_changed, on_mute)
+        self.widget.connect("destroy", self._destroyed)
 
     @staticmethod
     def _percent_text(value: float) -> str:
@@ -77,6 +78,11 @@ class VolumeControl:
         self._volume_timeout = None
         self._on_volume(float(self.scale.get_value()) / 100.0)
         return False
+
+    def _destroyed(self, _widget: Any) -> None:
+        if self._volume_timeout is not None:
+            self._GLib.source_remove(self._volume_timeout)
+            self._volume_timeout = None
 
     @staticmethod
     def _mute_changed(button: Any, callback: Callable[[bool], None]) -> None:

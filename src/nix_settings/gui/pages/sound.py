@@ -51,19 +51,21 @@ class SoundPage:
     def refresh(self) -> None:
         if self._destroyed:
             return
-        if self._refresh_lock.locked():
+        if not self._refresh_lock.acquire(blocking=False):
             self._refresh_again = True
             return
         threading.Thread(target=self._load_snapshot, name="sound-refresh", daemon=True).start()
 
     def _load_snapshot(self) -> None:
-        with self._refresh_lock:
+        try:
             try:
                 snapshot = self.backend.snapshot()
             except Exception as exc:  # noqa: BLE001 - backend boundary
                 self.GLib.idle_add(self._show_error, str(exc), True)
             else:
                 self.GLib.idle_add(self._apply_snapshot, snapshot)
+        finally:
+            self._refresh_lock.release()
         if self._refresh_again and not self._destroyed:
             self._refresh_again = False
             self.GLib.idle_add(self.refresh)
