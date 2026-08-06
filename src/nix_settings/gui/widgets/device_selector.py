@@ -13,23 +13,52 @@ class DeviceSelector:
         devices: Sequence[AudioDevice],
         selected_id: int | None,
         on_selected: Callable[[int], None],
+        on_scroll: Callable[[Any], None] | None = None,
+        *,
+        width: int | None = None,
     ) -> None:
-        self._ids: list[int] = []
-        self.widget = Gtk.DropDown.new_from_strings([])
-        names: list[str] = []
-        selected = 0
+        self._selected_id = selected_id
+        self._on_scroll = on_scroll
+        self._model = Gtk.ListStore(str, int)
+        active_index = 0
         for index, device in enumerate(devices):
-            self._ids.append(device.id)
-            names.append(device.description)
+            self._model.append((device.description, device.id))
             if device.id == selected_id:
-                selected = index
-        self.widget.set_model(Gtk.StringList.new(names))
-        if names:
-            self.widget.set_selected(selected)
-        self.widget.set_hexpand(True)
-        self.widget.connect("notify::selected", self._changed, on_selected)
+                active_index = index
 
-    def _changed(self, dropdown: Any, _param: Any, callback: Callable[[int], None]) -> None:
-        index = int(dropdown.get_selected())
-        if 0 <= index < len(self._ids):
-            callback(self._ids[index])
+        self.widget = Gtk.ComboBox.new_with_model(self._model)
+        renderer = Gtk.CellRendererText()
+        renderer.set_property("ellipsize", 3)
+        renderer.set_property("ellipsize-set", True)
+        self.widget.pack_start(renderer, True)
+        self.widget.add_attribute(renderer, "text", 0)
+        self.widget.set_active(active_index if devices else -1)
+
+        if width is None:
+            renderer.set_property("width-chars", 34)
+            self.widget.set_hexpand(True)
+        else:
+            # Gtk's size request is only a minimum. Fixing the renderer as well
+            # prevents short labels from making the combo grow into free space.
+            renderer.set_fixed_size(max(80, width - 44), -1)
+            self.widget.set_size_request(width, 34)
+            self.widget.set_hexpand(False)
+            self.widget.set_halign(Gtk.Align.START)
+
+        self.widget.connect("changed", self._changed, on_selected)
+        self.widget.connect("scroll-event", self._scroll)
+
+    def _changed(self, combo: Any, callback: Callable[[int], None]) -> None:
+        tree_iter = combo.get_active_iter()
+        if tree_iter is None:
+            return
+        selected_id = int(self._model[tree_iter][1])
+        if selected_id == self._selected_id:
+            return
+        self._selected_id = selected_id
+        callback(selected_id)
+
+    def _scroll(self, _combo: Any, event: Any) -> bool:
+        if self._on_scroll is not None:
+            self._on_scroll(event)
+        return True

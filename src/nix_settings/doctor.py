@@ -23,25 +23,25 @@ def _gi_checks() -> list[Check]:
 
         checks.append(Check("PyGObject", True, "available"))
         try:
-            gi.require_version("Gtk", "4.0")
+            gi.require_version("Gtk", "3.0")
             from gi.repository import Gtk  # noqa: F401
 
-            checks.append(Check("GTK 4", True, "typelib available"))
+            checks.append(Check("GTK 3", True, "typelib available"))
         except (ImportError, ValueError) as exc:
-            checks.append(Check("GTK 4", False, str(exc)))
+            checks.append(Check("GTK 3", False, str(exc)))
         try:
-            gi.require_version("Gtk4LayerShell", "1.0")
-            from gi.repository import Gtk4LayerShell  # noqa: F401
+            gi.require_version("GtkLayerShell", "0.1")
+            from gi.repository import GtkLayerShell  # noqa: F401
 
-            checks.append(Check("Gtk4LayerShell", True, "typelib available", required=False))
+            checks.append(Check("GTK Layer Shell", True, "typelib available"))
         except (ImportError, ValueError) as exc:
-            checks.append(Check("Gtk4LayerShell", False, str(exc), required=False))
+            checks.append(Check("GTK Layer Shell", False, str(exc)))
     except ImportError as exc:
         checks.extend(
             [
                 Check("PyGObject", False, str(exc)),
-                Check("GTK 4", False, "PyGObject unavailable"),
-                Check("Gtk4LayerShell", False, "PyGObject unavailable", required=False),
+                Check("GTK 3", False, "PyGObject unavailable"),
+                Check("GTK Layer Shell", False, "PyGObject unavailable"),
             ]
         )
     return checks
@@ -77,18 +77,12 @@ def _runtime_command(args: list[str]) -> tuple[bool, str]:
     return completed.returncode == 0, str(detail or "command completed")
 
 
-def _wireplumber_available(runtime: str | None) -> tuple[bool, str]:
-    if not runtime:
-        return False, "XDG_RUNTIME_DIR is not set"
-    return _runtime_command(["wpctl", "status"])
-
-
 def collect_checks() -> list[Check]:
     runtime = os.environ.get("XDG_RUNTIME_DIR")
     pipewire_ok, pipewire_detail = _socket_available(runtime)
     audio_server_ok, audio_server_detail = _runtime_command(["pw-dump"])
-    wireplumber_ok, wireplumber_detail = _wireplumber_available(runtime)
-    display = os.environ.get("WAYLAND_DISPLAY") or os.environ.get("DISPLAY")
+    wireplumber_ok, wireplumber_detail = _runtime_command(["wpctl", "status"])
+    wayland_display = os.environ.get("WAYLAND_DISPLAY")
     session_type = os.environ.get("XDG_SESSION_TYPE", "unknown")
     checks = _gi_checks()
     checks.extend(
@@ -108,15 +102,14 @@ def collect_checks() -> list[Check]:
                 shutil.which("pw-dump") or "not found",
             ),
             Check(
-                "Display session",
-                bool(display),
-                display or "WAYLAND_DISPLAY and DISPLAY are not set",
+                "Wayland display",
+                bool(wayland_display),
+                wayland_display or "WAYLAND_DISPLAY is not set",
             ),
             Check(
                 "Wayland session",
-                bool(os.environ.get("WAYLAND_DISPLAY")) or session_type == "wayland",
+                session_type == "wayland" or bool(wayland_display),
                 f"session type: {session_type}",
-                required=False,
             ),
         ]
     )

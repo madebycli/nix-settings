@@ -1,5 +1,5 @@
 {
-  description = "Nix Settings - native GTK4 settings for NixOS";
+  description = "Nix Settings - GTK3 layer-shell sound center for NixOS";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -62,13 +62,14 @@
             mkdir -p "$HOME" "$XDG_RUNTIME_DIR"
             chmod 700 "$XDG_RUNTIME_DIR"
             nix-settings --help | grep -q doctor
-            nix-settings --version | grep -q 'nix-settings 0.1.0'
+            nix-settings --version | grep -q 'nix-settings 0.2.7'
             set +e
             nix-settings doctor > doctor.txt
             result=$?
             set -e
             test "$result" -ne 0
-            grep -q 'Nix Settings doctor' doctor.txt
+            grep -q 'GTK 3' doctor.txt
+            grep -q 'GTK Layer Shell' doctor.txt
             touch "$out"
           '';
 
@@ -78,8 +79,9 @@
               echo "forbidden build dependency in Nix Settings runtime closure" >&2
               exit 1
             fi
-            if grep -R -E '/usr/bin/python|/usr/bin/env' ${package}/bin; then
-              echo "non-hermetic interpreter path found" >&2
+            if grep -R -E '/usr/bin/python|/usr/bin/env|Gtk4LayerShell|Gtk-4.0' \
+              ${package}/bin ${package}/libexec; then
+              echo "non-hermetic path or GTK4 reference found" >&2
               exit 1
             fi
             touch "$out"
@@ -90,6 +92,15 @@
         let
           pkgs = import nixpkgs { inherit system; };
           python = pkgs.python312.withPackages (ps: with ps; [ pytest mypy pygobject3 pycairo ]);
+          typelibPath = pkgs.lib.makeSearchPath "lib/girepository-1.0" [
+            pkgs.gobject-introspection
+            pkgs.glib
+            pkgs.gtk3
+            pkgs.gtk-layer-shell
+            pkgs.gdk-pixbuf
+            pkgs.pango
+            pkgs.at-spi2-core
+          ];
         in
         {
           default = pkgs.mkShell {
@@ -97,15 +108,19 @@
               python
               pkgs.ruff
               pkgs.nixfmt-rfc-style
-              pkgs.gtk4
-              pkgs.gtk4-layer-shell
+              pkgs.gtk3
+              pkgs.gtk-layer-shell
               pkgs.gobject-introspection
+              pkgs.gdk-pixbuf
+              pkgs.pango
+              pkgs.at-spi2-core
               pkgs.pipewire
               pkgs.wireplumber
             ];
             shellHook = ''
               export PYTHONPATH="$PWD/src''${PYTHONPATH:+:$PYTHONPATH}"
-              echo "Nix Settings development shell"
+              export GI_TYPELIB_PATH="${typelibPath}''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
+              echo "Nix Settings GTK3 layer-shell development shell"
             '';
           };
         });

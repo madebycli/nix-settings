@@ -1,20 +1,20 @@
-# Validation record
+# Validation
 
-Validation performed in the implementation environment:
+## Automated
 
-- `python -m compileall -q src`: passed
-- `pytest -q`: passed, 18 tests
-- `PYTHONPATH=src python -m nix_settings.__main__ --help`: passed
-- `PYTHONPATH=src python -m nix_settings.__main__ --version`: passed
+```bash
+python -m compileall -q src
+pytest -q
+ruff check .
+mypy src
+nix flake check
+```
 
-Not executed in this environment because the executables or desktop services were unavailable:
+## Live Wayland and PipeWire validation
 
-- `ruff check .`
-- `mypy src`
-- `nix flake check --print-build-logs`
-- `nix build .#nix-settings --print-build-logs`
-- built-package doctor smoke test
-- real GTK4 Layer Shell visual test
-- real PipeWire and WirePlumber live-audio test
+```bash
+nix-settings doctor
+nix-settings sound
+```
 
-The Flake defines checks for compilation, pytest, Ruff, mypy, CLI smoke behavior and runtime-closure policy. Visual behavior and live audio controls must still be tested in a real Wayland desktop session with PipeWire and WirePlumber.
+Confirm that the window is a GtkLayerShell surface, opens at its final size, and keeps the 2x2 workspace. Recording should contain only real apps. Sliders must remain stable during PipeWire events. Every stream Route selector must keep the same 300 logical-pixel width on normal and 15-inch displays, with a smaller non-overlapping fallback on narrow monitors. Long labels must ellipsize instead of resizing rows. The close control must stay circular and theme colors must be respected.

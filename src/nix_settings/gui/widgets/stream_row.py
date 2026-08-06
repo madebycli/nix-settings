@@ -12,58 +12,108 @@ class StreamRow:
     def __init__(
         self,
         Gtk: Any,
+        GLib: Any,
         stream: AudioStream,
         devices: Sequence[AudioDevice],
         on_volume: Callable[[int, float], None],
         on_mute: Callable[[int, bool], None],
         on_move: Callable[[int, int], None],
+        on_interaction: Callable[[bool], None],
+        on_scroll: Callable[[Any], None],
+        route_width: int,
     ) -> None:
-        self.widget = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        self.widget.add_css_class("stream-row")
-        header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        icon = Gtk.Image.new_from_icon_name(stream.application_icon or "audio-x-generic-symbolic")
-        icon.set_pixel_size(24)
-        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        title = Gtk.Label(label=stream.application_name, xalign=0)
-        title.add_css_class("stream-title")
-        title.set_ellipsize(3)
-        title.set_tooltip_text(stream.application_name)
-        detail_text = stream.media_name or (
-            "Microphone capture" if stream.direction is AudioDirection.RECORDING else "Audio playback"
-        )
-        detail = Gtk.Label(label=detail_text, xalign=0)
-        detail.add_css_class("stream-detail")
-        detail.set_ellipsize(3)
-        detail.set_tooltip_text(detail_text)
-        text.append(title)
-        text.append(detail)
-        text.set_hexpand(True)
-        activity = Gtk.Label(label="ACTIVE" if stream.is_active else "IDLE")
-        activity.add_css_class("status-chip")
-        header.append(icon)
-        header.append(text)
-        header.append(activity)
-        self.widget.append(header)
+        self.volume_control: VolumeControl | None = None
+        self.widget = Gtk.Grid()
+        self.widget.set_column_spacing(12)
+        self.widget.set_row_spacing(8)
+        self.widget.set_hexpand(True)
+        self.widget.set_size_request(-1, 108)
+        self.widget.get_style_context().add_class("stream-row")
 
+        # The app column absorbs all remaining room. This keeps the route group
+        # pinned to the right and identical for short and long application names.
+        app = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=9)
+        app.set_size_request(190, 40)
+        app.set_hexpand(True)
+        app.set_valign(Gtk.Align.CENTER)
+        app.get_style_context().add_class("stream-app")
+
+        icon = Gtk.Image.new_from_icon_name(
+            stream.application_icon or "audio-x-generic-symbolic",
+            Gtk.IconSize.BUTTON,
+        )
+        icon.set_size_request(22, 22)
+        icon.set_valign(Gtk.Align.CENTER)
+
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
+        text.set_size_request(150, 40)
+        text.set_hexpand(True)
+        text.set_valign(Gtk.Align.CENTER)
+
+        title = Gtk.Label(label=stream.application_name, xalign=0)
+        title.set_single_line_mode(True)
+        title.set_ellipsize(3)
+        title.set_hexpand(True)
+        title.set_tooltip_text(stream.application_name)
+        title.get_style_context().add_class("stream-title")
+
+        default_detail = (
+            "Recording" if stream.direction is AudioDirection.RECORDING else "Playback"
+        )
+        detail_text = stream.media_name or default_detail
+        detail = Gtk.Label(label=detail_text, xalign=0)
+        detail.set_single_line_mode(True)
+        detail.set_ellipsize(3)
+        detail.set_hexpand(True)
+        detail.set_tooltip_text(detail_text)
+        detail.get_style_context().add_class("stream-detail")
+
+        text.pack_start(title, False, False, 0)
+        text.pack_start(detail, False, False, 0)
+        app.pack_start(icon, False, False, 0)
+        app.pack_start(text, True, True, 0)
+
+        route_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        route_row.set_hexpand(False)
+        route_row.set_halign(Gtk.Align.END)
+        route_row.set_valign(Gtk.Align.CENTER)
+        route_label = Gtk.Label(label="ROUTE", xalign=0)
+        route_label.set_size_request(46, 34)
+        route_label.set_valign(Gtk.Align.CENTER)
+        route_label.get_style_context().add_class("control-label")
         routing = DeviceSelector(
             Gtk,
             devices,
             stream.device_id,
             lambda device_id: on_move(stream.id, device_id),
+            on_scroll,
+            width=route_width,
         )
-        self.widget.append(routing.widget)
-        if stream.volume_is_writable:
-            controls = VolumeControl(
-                Gtk,
-                stream.volume,
-                stream.is_muted,
-                lambda value: on_volume(stream.id, value),
-                lambda muted: on_mute(stream.id, muted),
-            )
-            self.widget.append(controls.widget)
-        else:
-            mute = Gtk.ToggleButton(label="Capture blocked" if stream.is_muted else "Block capture")
-            mute.add_css_class("pill")
-            mute.set_active(stream.is_muted)
-            mute.connect("toggled", lambda button: on_mute(stream.id, bool(button.get_active())))
-            self.widget.append(mute)
+        routing.widget.set_halign(Gtk.Align.END)
+        route_row.pack_start(route_label, False, False, 0)
+        route_row.pack_start(routing.widget, False, False, 0)
+
+        volume_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        volume_row.set_hexpand(True)
+        volume_row.set_valign(Gtk.Align.CENTER)
+        volume_label = Gtk.Label(label="VOLUME", xalign=0)
+        volume_label.set_size_request(52, 30)
+        volume_label.set_valign(Gtk.Align.CENTER)
+        volume_label.get_style_context().add_class("control-label")
+        controls = VolumeControl(
+            Gtk,
+            GLib,
+            stream.volume,
+            stream.is_muted,
+            lambda value: on_volume(stream.id, value),
+            lambda muted: on_mute(stream.id, muted),
+            on_interaction,
+            on_scroll,
+        )
+        self.volume_control = controls
+        volume_row.pack_start(volume_label, False, False, 0)
+        volume_row.pack_start(controls.widget, True, True, 0)
+
+        self.widget.attach(app, 0, 0, 1, 1)
+        self.widget.attach(route_row, 1, 0, 1, 1)
+        self.widget.attach(volume_row, 0, 1, 2, 1)

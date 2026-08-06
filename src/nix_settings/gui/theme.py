@@ -8,10 +8,10 @@ def install_css(Gtk: Any, Gdk: Any) -> None:
     provider = Gtk.CssProvider()
     css = files("nix_settings.gui").joinpath("style.css").read_text(encoding="utf-8")
     provider.load_from_data(css.encode())
-    display = Gdk.Display.get_default()
-    if display is not None:
-        Gtk.StyleContext.add_provider_for_display(
-            display,
+    screen = Gdk.Screen.get_default()
+    if screen is not None:
+        Gtk.StyleContext.add_provider_for_screen(
+            screen,
             provider,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
         )
