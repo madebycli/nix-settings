@@ -1,0 +1,12 @@
+[
+  {"id": 10, "type": "PipeWire:Interface:Node", "info": {"props": {"media.class": "Audio/Sink", "node.name": "speaker", "node.description": "Speakers"}}},
+  {"id": 11, "type": "PipeWire:Interface:Node", "info": {"props": {"media.class": "Audio/Source", "node.name": "microphone", "node.description": "Microphone"}}},
+  {"id": 70, "type": "PipeWire:Interface:Node", "info": {"props": {
+    "media.class": "Stream/Output/Audio", "application.name": "Firefox", "application.icon-name": "firefox",
+    "media.name": "Video", "target.object": 10, "volume": 0.8, "mute": false, "node.state": "running"
+  }}},
+  {"id": 71, "type": "PipeWire:Interface:Node", "info": {"props": {
+    "media.class": "Stream/Input/Audio", "application.name": "Discord", "media.name": "Voice chat",
+    "target.object": "11", "mute": false, "node.state": "running", "volume.writable": false
+  }}}
+]
