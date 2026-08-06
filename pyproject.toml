@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nix-settings"
-version = "0.2.6"
+version = "0.2.7"
 description = "A GTK3 layer-shell sound center for NixOS"
 readme = "README.md"
 requires-python = ">=3.12"
