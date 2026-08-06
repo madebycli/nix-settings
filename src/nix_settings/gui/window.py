@@ -45,6 +45,7 @@ class SettingsWindow:
             GLib,
             backend,
             initial_snapshot,
+            width,
             initial_error,
         )
         self.window.add(self._build_root())
