@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from nix_settings.audio.wireplumber import WirePlumberBackend
-from nix_settings.gui.layout import HEADER_HEIGHT, window_size
+from nix_settings.audio.backend import AudioBackend
+from nix_settings.audio.models import AudioSnapshot
+from nix_settings.gui.layout import window_size
 from nix_settings.gui.pages.sound import SoundPage
 from nix_settings.gui.theme import install_css
 
@@ -16,6 +17,9 @@ class SettingsWindow:
         GLib: Any,
         GtkLayerShell: Any,
         application: Any,
+        backend: AudioBackend,
+        initial_snapshot: AudioSnapshot,
+        initial_error: str | None = None,
         page: str = "sound",
     ) -> None:
         del page
@@ -36,7 +40,13 @@ class SettingsWindow:
         self._configure_layer_shell()
         install_css(Gtk, Gdk)
 
-        self.sound_page = SoundPage(Gtk, GLib, WirePlumberBackend())
+        self.sound_page = SoundPage(
+            Gtk,
+            GLib,
+            backend,
+            initial_snapshot,
+            initial_error,
+        )
         self.window.add(self._build_root())
         self.window.connect("key-press-event", self._key_pressed)
         self.window.connect("delete-event", self._close_requested)
@@ -44,7 +54,8 @@ class SettingsWindow:
 
     def present(self) -> None:
         self.window.show_all()
-        self.sound_page.error.hide()
+        if not self.sound_page.has_error:
+            self.sound_page.error.hide()
         self.window.present()
         self.sound_page.start()
 
@@ -77,29 +88,22 @@ class SettingsWindow:
         return window_size(int(geometry.width), int(geometry.height))
 
     def _build_root(self) -> Any:
-        root = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL)
+        root = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=0)
         root.get_style_context().add_class("nix-settings-root")
         root.pack_start(self._header(), False, False, 0)
         root.pack_start(self.sound_page.widget, True, True, 0)
-        footer = self.Gtk.Label(label="Esc = close  •  Ctrl+R = refresh  •  Ctrl+Q = quit")
-        footer.get_style_context().add_class("shortcut-hint")
-        footer.set_margin_top(3)
-        footer.set_margin_bottom(10)
-        root.pack_end(footer, False, False, 0)
         return root
 
     def _header(self) -> Any:
         header = self.Gtk.Box(orientation=self.Gtk.Orientation.HORIZONTAL, spacing=10)
         header.get_style_context().add_class("app-header")
-        header.set_size_request(-1, HEADER_HEIGHT)
-        header.set_margin_top(10)
-        header.set_margin_start(12)
-        header.set_margin_end(12)
-        header.set_margin_bottom(2)
+        header.set_margin_top(14)
+        header.set_margin_bottom(10)
+        header.set_margin_start(14)
+        header.set_margin_end(14)
 
-        close = self.Gtk.Button(label="×")
-        close.set_size_request(30, 30)
-        close.get_style_context().add_class("close-button")
+        close = self.Gtk.Button(label="✕")
+        close.get_style_context().add_class("x-btn")
         close.connect("clicked", lambda *_: self.window.close())
 
         title = self.Gtk.Label(label="Sound", xalign=0)
@@ -107,8 +111,7 @@ class SettingsWindow:
         title.set_hexpand(True)
 
         refresh = self.Gtk.Button(label="Refresh")
-        refresh.set_size_request(82, 30)
-        refresh.get_style_context().add_class("pill")
+        refresh.get_style_context().add_class("chip")
         refresh.connect("clicked", lambda *_: self.sound_page.refresh())
 
         header.pack_start(close, False, False, 0)

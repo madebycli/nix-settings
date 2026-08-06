@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import threading
 from collections.abc import Callable, Sequence
 from typing import Any
@@ -13,21 +12,28 @@ from nix_settings.gui.widgets.error_banner import ErrorBanner
 from nix_settings.gui.widgets.stream_row import StreamRow
 from nix_settings.gui.widgets.volume_control import VolumeControl
 
-LOGGER = logging.getLogger(__name__)
-
 
 class SoundPage:
-    def __init__(self, Gtk: Any, GLib: Any, backend: AudioBackend) -> None:
+    def __init__(
+        self,
+        Gtk: Any,
+        GLib: Any,
+        backend: AudioBackend,
+        initial_snapshot: AudioSnapshot,
+        initial_error: str | None = None,
+    ) -> None:
         self.Gtk = Gtk
         self.GLib = GLib
         self.backend = backend
-        self.snapshot = AudioSnapshot.empty()
+        self.snapshot = initial_snapshot
         self._refresh_lock = threading.Lock()
         self._refresh_again = False
         self._destroyed = False
         self._debounce_id: int | None = None
-        self._interaction_release_id: int | None = None
         self._interaction_count = 0
+        self._pending_snapshot: AudioSnapshot | None = None
+        self._structure: tuple[object, ...] | None = None
+        self._volume_controls: dict[int, VolumeControl] = {}
         self.monitor = PipeWireMonitor(self._monitor_changed, self._monitor_disconnected)
 
         self.widget = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -36,21 +42,20 @@ class SoundPage:
         self.error = ErrorBanner(Gtk)
         self.widget.pack_start(self.error.widget, False, False, 0)
 
-        self.scroller = Gtk.ScrolledWindow()
-        self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.scroller.set_shadow_type(Gtk.ShadowType.NONE)
-        self.scroller.set_overlay_scrolling(False)
-        self.scroller.set_vexpand(True)
+        self.grid = Gtk.Grid()
+        self.grid.set_column_homogeneous(True)
+        self.grid.set_column_spacing(10)
+        self.grid.set_row_spacing(10)
+        self.grid.set_hexpand(True)
+        self.grid.set_vexpand(True)
+        self.widget.pack_start(self.grid, True, True, 0)
 
-        self.content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        self.content.set_margin_right(10)
-        self.content.set_margin_bottom(18)
-        self.scroller.add_with_viewport(self.content)
-        self.widget.pack_start(self.scroller, True, True, 0)
-        self._render_loading()
+        self.has_error = bool(initial_error)
+        if initial_error:
+            self.error.show(initial_error, disconnected=True)
+        self._render_snapshot(initial_snapshot)
 
     def start(self) -> None:
-        self.refresh()
         self.monitor.start()
 
     def refresh(self) -> None:
@@ -82,64 +87,53 @@ class SoundPage:
         if self._destroyed:
             return False
         if self._interaction_count > 0:
+            self._pending_snapshot = snapshot
             self._refresh_again = True
             return False
 
-        adjustment = self.scroller.get_vadjustment()
-        previous_scroll = adjustment.get_value() if adjustment is not None else 0.0
         self.snapshot = snapshot
+        self.has_error = False
         self.error.hide()
-        self._clear_content()
+        structure = self._snapshot_structure(snapshot)
+        if structure == self._structure:
+            self._sync_control_state(snapshot)
+            return False
 
-        if not snapshot.outputs and not snapshot.inputs:
-            self._render_state("No audio devices", "PipeWire returned an empty device graph.")
-        else:
-            outputs = self._unique_devices(snapshot.outputs)
-            inputs = self._unique_devices(snapshot.inputs)
-
-            devices = self.Gtk.Box(orientation=self.Gtk.Orientation.HORIZONTAL, spacing=10)
-            devices.set_homogeneous(True)
-            devices.pack_start(
-                self._device_card("OUTPUT", outputs, snapshot.default_output_id),
-                True,
-                True,
-                0,
-            )
-            devices.pack_start(
-                self._device_card("INPUT", inputs, snapshot.default_input_id),
-                True,
-                True,
-                0,
-            )
-            self.content.pack_start(devices, False, False, 0)
-
-            self.content.pack_start(
-                self._streams_card(
-                    "PLAYBACK",
-                    snapshot.playback_streams,
-                    outputs,
-                    "No applications are playing audio.",
-                ),
-                False,
-                False,
-                0,
-            )
-            self.content.pack_start(
-                self._streams_card(
-                    "RECORDING",
-                    snapshot.recording_streams,
-                    inputs,
-                    "No applications are recording audio.",
-                ),
-                False,
-                False,
-                0,
-            )
-
-        self.content.show_all()
-        self.error.hide()
-        self.GLib.idle_add(self._restore_scroll, previous_scroll)
+        self._render_snapshot(snapshot)
         return False
+
+    def _render_snapshot(self, snapshot: AudioSnapshot) -> None:
+        self._clear_grid()
+        self._volume_controls.clear()
+        self._structure = self._snapshot_structure(snapshot)
+
+        outputs = self._unique_devices(snapshot.outputs)
+        inputs = self._unique_devices(snapshot.inputs)
+
+        output_card = self._device_card("OUTPUT", outputs, snapshot.default_output_id)
+        input_card = self._device_card("INPUT", inputs, snapshot.default_input_id)
+        playback_card = self._streams_card(
+            "PLAYBACK",
+            snapshot.playback_streams,
+            outputs,
+            "No applications are playing audio.",
+        )
+        recording_card = self._streams_card(
+            "RECORDING",
+            snapshot.recording_streams,
+            inputs,
+            "No applications are recording audio.",
+        )
+
+        self.grid.attach(output_card, 0, 0, 1, 1)
+        self.grid.attach(input_card, 1, 0, 1, 1)
+        self.grid.attach(playback_card, 0, 1, 1, 1)
+        self.grid.attach(recording_card, 1, 1, 1, 1)
+        playback_card.set_vexpand(True)
+        recording_card.set_vexpand(True)
+        self.grid.show_all()
+        if not self.has_error:
+            self.error.hide()
 
     @staticmethod
     def _unique_devices(devices: Sequence[AudioDevice]) -> tuple[AudioDevice, ...]:
@@ -151,12 +145,44 @@ class SoundPage:
                 unique[key] = device
         return tuple(unique.values())
 
-    def _restore_scroll(self, value: float) -> bool:
-        adjustment = self.scroller.get_vadjustment()
-        if adjustment is not None:
-            upper = max(0.0, adjustment.get_upper() - adjustment.get_page_size())
-            adjustment.set_value(min(value, upper))
-        return False
+    def _snapshot_structure(self, snapshot: AudioSnapshot) -> tuple[object, ...]:
+        def device_key(device: AudioDevice) -> tuple[object, ...]:
+            return (
+                device.id,
+                device.description,
+                device.active_port,
+                device.active_profile,
+            )
+
+        def stream_key(stream: AudioStream) -> tuple[object, ...]:
+            return (
+                stream.id,
+                stream.application_name,
+                stream.application_icon,
+                stream.media_name,
+                stream.device_id,
+            )
+
+        return (
+            tuple(device_key(item) for item in self._unique_devices(snapshot.outputs)),
+            tuple(device_key(item) for item in self._unique_devices(snapshot.inputs)),
+            snapshot.default_output_id,
+            snapshot.default_input_id,
+            tuple(stream_key(item) for item in snapshot.playback_streams),
+            tuple(stream_key(item) for item in snapshot.recording_streams),
+        )
+
+    def _sync_control_state(self, snapshot: AudioSnapshot) -> None:
+        nodes: list[AudioDevice | AudioStream] = [
+            *snapshot.outputs,
+            *snapshot.inputs,
+            *snapshot.playback_streams,
+            *snapshot.recording_streams,
+        ]
+        for node in nodes:
+            control = self._volume_controls.get(node.id)
+            if control is not None:
+                control.set_state(node.volume, node.is_muted)
 
     def _device_card(
         self,
@@ -167,6 +193,7 @@ class SoundPage:
         card = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=8)
         card.get_style_context().add_class("card")
         card.get_style_context().add_class("device-card")
+        card.set_hexpand(True)
 
         label = self.Gtk.Label(label=heading, xalign=0)
         label.get_style_context().add_class("section-title")
@@ -187,7 +214,6 @@ class SoundPage:
             devices,
             selected.id,
             lambda device_id: self._operation(lambda: self.backend.set_default(device_id)),
-            self._scroll_page,
         )
         info.pack_start(selector.widget, False, False, 0)
 
@@ -212,9 +238,9 @@ class SoundPage:
             lambda value: self._operation(lambda: self.backend.set_volume(selected.id, value)),
             lambda muted: self._operation(lambda: self.backend.set_muted(selected.id, muted)),
             self._interaction_changed,
-            self._scroll_page,
         )
-        controls.widget.set_size_request(340, -1)
+        controls.widget.set_size_request(330, -1)
+        self._volume_controls[selected.id] = controls
 
         body.pack_start(info, True, True, 0)
         body.pack_end(controls.widget, False, False, 0)
@@ -231,74 +257,78 @@ class SoundPage:
         card = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=8)
         card.get_style_context().add_class("card")
         card.get_style_context().add_class("streams-card")
+        card.set_hexpand(True)
+        card.set_vexpand(True)
 
         label = self.Gtk.Label(label=heading, xalign=0)
         label.get_style_context().add_class("section-title")
         card.pack_start(label, False, False, 0)
 
+        scroller = self.Gtk.ScrolledWindow()
+        scroller.set_policy(self.Gtk.PolicyType.NEVER, self.Gtk.PolicyType.AUTOMATIC)
+        scroller.set_shadow_type(self.Gtk.ShadowType.NONE)
+        scroller.set_overlay_scrolling(False)
+        scroller.set_hexpand(True)
+        scroller.set_vexpand(True)
+
+        rows = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=9)
+        rows.set_margin_right(8)
+        rows.set_margin_bottom(4)
+
         if not streams:
             empty = self.Gtk.Label(label=empty_text, xalign=0)
             empty.get_style_context().add_class("state-detail")
-            card.pack_start(empty, False, False, 0)
-            return card
+            empty.set_margin_top(16)
+            rows.pack_start(empty, False, False, 0)
+        else:
+            on_scroll = lambda event: self._scroll_scroller(scroller, event)
+            for stream in streams:
+                row = StreamRow(
+                    self.Gtk,
+                    self.GLib,
+                    stream,
+                    devices,
+                    lambda stream_id, value: self._operation(
+                        lambda: self.backend.set_volume(stream_id, value)
+                    ),
+                    lambda stream_id, muted: self._operation(
+                        lambda: self.backend.set_muted(stream_id, muted)
+                    ),
+                    lambda stream_id, device_id: self._operation(
+                        lambda: self.backend.move_stream(stream_id, device_id)
+                    ),
+                    self._interaction_changed,
+                    on_scroll,
+                )
+                control = row.volume_control
+                if control is not None:
+                    self._volume_controls[stream.id] = control
+                rows.pack_start(row.widget, False, False, 0)
 
-        flow = self.Gtk.FlowBox()
-        flow.set_selection_mode(self.Gtk.SelectionMode.NONE)
-        flow.set_homogeneous(True)
-        flow.set_min_children_per_line(2)
-        flow.set_max_children_per_line(2)
-        flow.set_column_spacing(9)
-        flow.set_row_spacing(9)
-
-        for stream in streams:
-            row = StreamRow(
-                self.Gtk,
-                self.GLib,
-                stream,
-                devices,
-                lambda stream_id, value: self._operation(
-                    lambda: self.backend.set_volume(stream_id, value)
-                ),
-                lambda stream_id, muted: self._operation(
-                    lambda: self.backend.set_muted(stream_id, muted)
-                ),
-                lambda stream_id, device_id: self._operation(
-                    lambda: self.backend.move_stream(stream_id, device_id)
-                ),
-                self._interaction_changed,
-                self._scroll_page,
-            )
-            flow.insert(row.widget, -1)
-
-        card.pack_start(flow, False, False, 0)
+        scroller.add_with_viewport(rows)
+        card.pack_start(scroller, True, True, 0)
         return card
 
     def _interaction_changed(self, active: bool) -> None:
         if active:
-            if self._interaction_release_id is not None:
-                self.GLib.source_remove(self._interaction_release_id)
-                self._interaction_release_id = None
             self._interaction_count += 1
             return
-
         self._interaction_count = max(0, self._interaction_count - 1)
         if self._interaction_count == 0:
+            self._pending_snapshot = None
             self._refresh_again = False
-            self._interaction_release_id = self.GLib.timeout_add(
-                180,
-                self._refresh_after_interaction,
-            )
+            self.GLib.timeout_add(40, self._refresh_after_interaction)
 
     def _refresh_after_interaction(self) -> bool:
-        self._interaction_release_id = None
-        self.refresh()
+        if not self._destroyed and self._interaction_count == 0:
+            self.refresh()
         return False
 
-    def _scroll_page(self, event: Any) -> None:
-        adjustment = self.scroller.get_vadjustment()
+    @staticmethod
+    def _scroll_scroller(scroller: Any, event: Any) -> None:
+        adjustment = scroller.get_vadjustment()
         if adjustment is None:
             return
-
         direction = int(getattr(event, "direction", 4))
         delta = 0.0
         if direction == 0:
@@ -311,7 +341,6 @@ class SoundPage:
                 delta = float(delta_y) if success else 0.0
             except (AttributeError, TypeError, ValueError):
                 delta = 0.0
-
         step = max(52.0, adjustment.get_step_increment() * 3.0)
         upper = max(0.0, adjustment.get_upper() - adjustment.get_page_size())
         adjustment.set_value(
@@ -332,15 +361,8 @@ class SoundPage:
     def _show_error(self, message: str, disconnected: bool) -> bool:
         if self._destroyed:
             return False
+        self.has_error = True
         self.error.show(message, disconnected=disconnected)
-        if disconnected and not self.snapshot.outputs and not self.snapshot.inputs:
-            self._clear_content()
-            self._render_state(
-                "Audio service disconnected",
-                "Nix Settings will retry automatically.",
-            )
-            self.content.show_all()
-            self.error.show(message, disconnected=True)
         return False
 
     def _monitor_changed(self) -> None:
@@ -354,7 +376,7 @@ class SoundPage:
             return False
         if self._debounce_id is not None:
             self.GLib.source_remove(self._debounce_id)
-        self._debounce_id = self.GLib.timeout_add(650, self._run_monitor_refresh)
+        self._debounce_id = self.GLib.timeout_add(350, self._run_monitor_refresh)
         return False
 
     def _run_monitor_refresh(self) -> bool:
@@ -365,41 +387,13 @@ class SoundPage:
     def _monitor_disconnected(self, message: str) -> None:
         self.GLib.idle_add(self._show_error, message, True)
 
-    def _render_loading(self) -> None:
-        self._clear_content()
-        spinner = self.Gtk.Spinner()
-        spinner.start()
-        box = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=10)
-        box.set_halign(self.Gtk.Align.CENTER)
-        box.set_valign(self.Gtk.Align.CENTER)
-        box.set_vexpand(True)
-        box.pack_start(spinner, False, False, 0)
-        box.pack_start(self.Gtk.Label(label="Loading audio devices…"), False, False, 0)
-        self.content.pack_start(box, True, True, 0)
-
-    def _render_state(self, title: str, detail: str) -> None:
-        box = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=8)
-        box.set_halign(self.Gtk.Align.CENTER)
-        box.set_valign(self.Gtk.Align.CENTER)
-        box.set_vexpand(True)
-        heading = self.Gtk.Label(label=title)
-        heading.get_style_context().add_class("state-title")
-        message = self.Gtk.Label(label=detail)
-        message.get_style_context().add_class("state-detail")
-        box.pack_start(heading, False, False, 0)
-        box.pack_start(message, False, False, 0)
-        self.content.pack_start(box, True, True, 0)
-
-    def _clear_content(self) -> None:
-        for child in list(self.content.get_children()):
-            self.content.remove(child)
+    def _clear_grid(self) -> None:
+        for child in list(self.grid.get_children()):
+            self.grid.remove(child)
 
     def stop(self) -> None:
         self._destroyed = True
         if self._debounce_id is not None:
             self.GLib.source_remove(self._debounce_id)
             self._debounce_id = None
-        if self._interaction_release_id is not None:
-            self.GLib.source_remove(self._interaction_release_id)
-            self._interaction_release_id = None
         self.monitor.stop()

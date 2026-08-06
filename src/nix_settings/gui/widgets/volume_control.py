@@ -18,33 +18,33 @@ class VolumeControl:
     ) -> None:
         self._GLib = GLib
         self._on_volume = on_volume
+        self._on_mute = on_mute
         self._on_interaction = on_interaction or (lambda _active: None)
         self._on_scroll = on_scroll
         self._volume_timeout: int | None = None
         self._release_timeout: int | None = None
         self._dragging = False
         self._interaction_active = False
+        self._updating = False
 
         self.widget = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self.widget.get_style_context().add_class("volume-control")
 
         self.scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1)
-        self.scale.set_size_request(220, -1)
+        self.scale.set_size_request(190, -1)
         self.scale.set_hexpand(True)
         self.scale.set_draw_value(False)
-        self.scale.set_value(max(0.0, min(100.0, value * 100.0)))
         self.scale.set_tooltip_text("Drag to change volume")
 
-        self.percent = Gtk.Label(label=self._percent_text(value * 100.0))
+        self.percent = Gtk.Label()
         self.percent.set_size_request(42, -1)
         self.percent.set_xalign(1.0)
         self.percent.get_style_context().add_class("volume-value")
 
         self.mute = Gtk.ToggleButton(label="Mute")
-        self.mute.set_active(muted)
-        self.mute.set_size_request(62, 28)
+        self.mute.set_size_request(62, 30)
         self.mute.set_tooltip_text("Mute this audio source")
-        self.mute.get_style_context().add_class("pill")
+        self.mute.get_style_context().add_class("chip")
 
         self.widget.pack_start(self.scale, True, True, 0)
         self.widget.pack_start(self.percent, False, False, 0)
@@ -55,19 +55,34 @@ class VolumeControl:
         self.scale.connect("grab-broken-event", self._drag_cancelled)
         self.scale.connect("value-changed", self._volume_changed)
         self.scale.connect("scroll-event", self._scroll_event)
-        self.mute.connect("toggled", self._mute_changed, on_mute)
+        self.mute.connect("toggled", self._mute_changed)
         self.widget.connect("destroy", self._destroyed)
+        self.set_state(value, muted)
 
     @staticmethod
     def _percent_text(value: float) -> str:
         return f"{int(round(max(0.0, min(100.0, value))))}%"
 
+    def set_state(self, volume: float, muted: bool) -> None:
+        if self._dragging or self._interaction_active:
+            return
+        value = max(0.0, min(100.0, volume * 100.0))
+        self._updating = True
+        try:
+            self.scale.set_value(value)
+            self.percent.set_text(self._percent_text(value))
+            self.mute.set_active(muted)
+        finally:
+            self._updating = False
+
     def _volume_changed(self, scale: Any) -> None:
         value = float(scale.get_value())
         self.percent.set_text(self._percent_text(value))
+        if self._updating:
+            return
         if not self._dragging:
             self._begin_interaction()
-            self._schedule_emit(160)
+            self._schedule_emit(120)
             self._schedule_release(900)
 
     def _drag_started(self, _scale: Any, _event: Any) -> bool:
@@ -80,7 +95,7 @@ class VolumeControl:
         return False
 
     def _drag_finished(self, _scale: Any, _event: Any) -> bool:
-        self._finish_drag(40)
+        self._finish_drag(0)
         return False
 
     def _drag_cancelled(self, _scale: Any, _event: Any) -> bool:
@@ -131,6 +146,10 @@ class VolumeControl:
             self._on_scroll(event)
         return True
 
+    def _mute_changed(self, button: Any) -> None:
+        if not self._updating:
+            self._on_mute(bool(button.get_active()))
+
     def _destroyed(self, _widget: Any) -> None:
         self._cancel_release()
         if self._interaction_active:
@@ -139,7 +158,3 @@ class VolumeControl:
         if self._volume_timeout is not None:
             self._GLib.source_remove(self._volume_timeout)
             self._volume_timeout = None
-
-    @staticmethod
-    def _mute_changed(button: Any, callback: Callable[[bool], None]) -> None:
-        callback(bool(button.get_active()))

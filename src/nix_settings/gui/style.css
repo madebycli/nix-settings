@@ -2,25 +2,21 @@
   background: transparent;
 }
 
+/* Exact GIF Player picker shell values. */
 .nix-settings-root {
-  background: rgba(8, 7, 8, 0.992);
-  color: rgba(246, 244, 246, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  border-radius: 14px;
+  background: rgba(14, 14, 14, 0.97);
+  color: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
 }
 
 .app-header {
-  min-height: 42px;
-  padding: 0 10px;
-  background: rgba(16, 14, 16, 0.98);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 11px;
+  background: transparent;
 }
 
 .app-title,
 .section-title,
 button,
-.shortcut-hint,
 .device-detail,
 .stream-title,
 .stream-detail,
@@ -32,22 +28,21 @@ button,
 }
 
 .app-title {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.94);
+  color: rgba(255, 255, 255, 0.90);
 }
 
 .section-title {
   font-size: 11px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.52);
-  letter-spacing: 0.4px;
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .stream-title {
   font-size: 13px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.91);
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .device-detail,
@@ -55,7 +50,7 @@ button,
 .state-detail,
 .control-label {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.48);
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .state-title {
@@ -63,25 +58,25 @@ button,
   font-weight: 700;
 }
 
-.shortcut-hint {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.25);
-}
-
 .volume-value {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .content {
-  padding: 8px 12px 0 12px;
+  padding: 0 14px 14px 14px;
+}
+
+/* Exact GIF Player thumb-tile values. */
+.card,
+.stream-row {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .card {
   padding: 10px;
-  border-radius: 10px;
-  background: rgba(14, 13, 15, 0.98);
-  border: 1px solid rgba(255, 255, 255, 0.075);
 }
 
 .device-card {
@@ -89,55 +84,73 @@ button,
 }
 
 .streams-card {
-  background: rgba(11, 10, 12, 0.98);
+  min-height: 420px;
 }
 
-button.pill,
-button.close-button {
-  min-height: 28px;
-  border-radius: 999px;
-  background: rgba(22, 20, 22, 0.98);
-  color: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  box-shadow: none;
+.stream-row {
+  padding: 10px;
 }
 
-button.pill {
-  padding: 0 11px;
-}
-
-button.pill:hover,
-button.close-button:hover {
-  background: rgba(34, 31, 34, 0.98);
-  color: rgba(255, 255, 255, 0.96);
+.stream-row:hover {
+  background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.20);
 }
 
-button.pill:checked {
-  background: rgba(42, 38, 42, 0.98);
-  color: rgba(255, 255, 255, 0.97);
-  border-color: rgba(255, 255, 255, 0.25);
-}
-
-button.close-button {
-  min-width: 28px;
-  padding: 0;
-  font-size: 15px;
-}
-
-combobox button {
+/* Exact GIF Player close button. */
+.x-btn {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 999px;
+  min-width: 30px;
   min-height: 30px;
-  padding: 0 10px;
-  border-radius: 8px;
-  background: rgba(20, 18, 20, 0.98);
+  padding: 0;
+  font-family: monospace;
+}
+
+.x-btn:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+/* Exact GIF Player chip values, reused for Refresh and Mute. */
+.chip {
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 999px;
+  padding: 2px 14px;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.chip:hover {
+  background: rgba(255, 255, 255, 0.10);
   color: rgba(255, 255, 255, 0.90);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.chip:checked {
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.95);
+  border-color: rgba(255, 255, 255, 0.30);
+}
+
+/* Exact GIF Player entry palette applied to selectors. */
+combobox button {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: monospace;
   box-shadow: none;
 }
 
-combobox button:hover {
-  background: rgba(29, 27, 29, 0.98);
-  border-color: rgba(255, 255, 255, 0.16);
+combobox button:hover,
+combobox button:focus {
+  border-color: rgba(255, 255, 255, 0.40);
 }
 
 .error-banner {
@@ -170,34 +183,16 @@ scale trough {
 
 scale highlight {
   border-radius: 999px;
-  background: rgba(224, 221, 225, 0.90);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 scale slider {
   min-width: 14px;
   min-height: 14px;
   border-radius: 999px;
-  background: rgb(236, 233, 237);
-  border: 1px solid rgba(0, 0, 0, 0.70);
+  background: rgba(255, 255, 255, 0.90);
+  border: 1px solid rgba(0, 0, 0, 0.65);
   box-shadow: none;
-}
-
-flowboxchild {
-  padding: 0;
-  background: transparent;
-}
-
-.stream-row {
-  min-width: 600px;
-  padding: 10px;
-  border-radius: 9px;
-  background: rgba(18, 16, 18, 0.98);
-  border: 1px solid rgba(255, 255, 255, 0.065);
-}
-
-.stream-row:hover {
-  background: rgba(23, 21, 23, 0.98);
-  border-color: rgba(255, 255, 255, 0.10);
 }
 
 scrolledwindow,
@@ -205,8 +200,13 @@ viewport {
   background: transparent;
 }
 
+scrolledwindow undershoot,
+scrolledwindow overshoot {
+  background: none;
+}
+
 scrollbar.vertical {
-  min-width: 10px;
+  min-width: 9px;
   margin-left: 5px;
   background: transparent;
 }
@@ -215,9 +215,9 @@ scrollbar slider {
   min-width: 5px;
   min-height: 36px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.17);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 scrollbar slider:hover {
-  background: rgba(255, 255, 255, 0.29);
+  background: rgba(255, 255, 255, 0.28);
 }

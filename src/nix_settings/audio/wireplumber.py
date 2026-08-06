@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import threading
 import time
+from collections.abc import Iterable
 from dataclasses import replace
 
 from nix_settings.audio.backend import AudioBackend
@@ -20,6 +21,23 @@ from nix_settings.audio.pipewire import parse_pw_dump
 _VOLUME_RE = re.compile(r"Volume:\s*([0-9]+(?:\.[0-9]+)?)", re.IGNORECASE)
 _PENDING_SECONDS = 3.0
 _VOLUME_EPSILON = 0.015
+_INTERNAL_RECORDING_APPS = (
+    "pavucontrol",
+    "pulseaudio volume control",
+    "pulseaudio-lautstärkeregler",
+    "pulseaudio-lautstaerkeregler",
+    "wireplumber",
+    "pipewire",
+    "nix settings",
+    "nix-settings",
+)
+_INTERNAL_RECORDING_MEDIA = (
+    "ausschlagserkennung",
+    "peak detect",
+    "peak detection",
+    "level meter",
+    "monitor of",
+)
 
 
 def parse_wpctl_volume(text: str) -> tuple[float, bool]:
@@ -31,6 +49,24 @@ def parse_wpctl_volume(text: str) -> tuple[float, bool]:
     return volume, muted
 
 
+def visible_recording_streams(streams: Iterable[AudioStream]) -> tuple[AudioStream, ...]:
+    visible: dict[str, AudioStream] = {}
+    for stream in streams:
+        app = stream.application_name.strip()
+        app_key = app.casefold()
+        media_key = (stream.media_name or "").strip().casefold()
+        if not app or app_key == "unknown application":
+            continue
+        if any(token in app_key for token in _INTERNAL_RECORDING_APPS):
+            continue
+        if any(token in media_key for token in _INTERNAL_RECORDING_MEDIA):
+            continue
+        current = visible.get(app_key)
+        if current is None or (stream.is_active and not current.is_active):
+            visible[app_key] = stream
+    return tuple(sorted(visible.values(), key=lambda item: item.application_name.casefold()))
+
+
 class WirePlumberBackend(AudioBackend):
     def __init__(self, runner: CommandRunner | None = None) -> None:
         self.runner = runner or CommandRunner()
@@ -38,7 +74,9 @@ class WirePlumberBackend(AudioBackend):
         self._pending_volumes: dict[int, tuple[float, float]] = {}
 
     def snapshot(self) -> AudioSnapshot:
-        snapshot = parse_pw_dump(self.runner.run(["pw-dump"]).stdout)
+        raw = parse_pw_dump(self.runner.run(["pw-dump"]).stdout)
+        recording = visible_recording_streams(raw.recording_streams)
+        snapshot = replace(raw, recording_streams=recording)
         return replace(
             snapshot,
             outputs=tuple(self._device_volume(device) for device in snapshot.outputs),
@@ -85,7 +123,7 @@ class WirePlumberBackend(AudioBackend):
         state = self._live_volume(stream.id)
         if state is None:
             volume = self._effective_volume(stream.id, stream.volume)
-            return replace(stream, volume=volume)
+            return replace(stream, volume=volume, volume_is_writable=True)
         volume = self._effective_volume(stream.id, state[0])
         return replace(
             stream,

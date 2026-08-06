@@ -21,6 +21,7 @@ class StreamRow:
         on_interaction: Callable[[bool], None],
         on_scroll: Callable[[Any], None],
     ) -> None:
+        self.volume_control: VolumeControl | None = None
         self.widget = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7)
         self.widget.get_style_context().add_class("stream-row")
 
@@ -37,11 +38,7 @@ class StreamRow:
         title.set_ellipsize(3)
         title.set_tooltip_text(stream.application_name)
 
-        default_detail = (
-            "Recording"
-            if stream.direction is AudioDirection.RECORDING
-            else "Playback"
-        )
+        default_detail = "Recording" if stream.direction is AudioDirection.RECORDING else "Playback"
         detail_text = stream.media_name or default_detail
         detail = Gtk.Label(label=detail_text, xalign=0)
         detail.get_style_context().add_class("stream-detail")
@@ -55,7 +52,7 @@ class StreamRow:
         header.pack_start(text, True, True, 0)
         self.widget.pack_start(header, False, False, 0)
 
-        controls_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        controls_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
 
         route_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
         route_label = Gtk.Label(label="ROUTE", xalign=0)
@@ -67,7 +64,6 @@ class StreamRow:
             lambda device_id: on_move(stream.id, device_id),
             on_scroll,
         )
-        routing.widget.set_size_request(250, -1)
         route_box.pack_start(route_label, False, False, 0)
         route_box.pack_start(routing.widget, False, False, 0)
 
@@ -84,7 +80,7 @@ class StreamRow:
             on_interaction,
             on_scroll,
         )
-        controls.widget.set_size_request(300, -1)
+        self.volume_control = controls
         volume_box.pack_start(volume_label, False, False, 0)
         volume_box.pack_start(controls.widget, False, False, 0)
 
