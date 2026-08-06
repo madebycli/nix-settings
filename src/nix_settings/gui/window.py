@@ -105,10 +105,28 @@ class SettingsWindow:
         header.set_margin_start(12)
         header.set_margin_end(12)
 
-        close = self.Gtk.Button(label="✕")
+        close = self.Gtk.EventBox()
         close.set_size_request(32, 32)
+        close.set_halign(self.Gtk.Align.CENTER)
+        close.set_valign(self.Gtk.Align.CENTER)
+        close.set_hexpand(False)
+        close.set_vexpand(False)
+        close.set_tooltip_text("Close")
+        close.add_events(
+            self.Gdk.EventMask.BUTTON_PRESS_MASK
+            | self.Gdk.EventMask.ENTER_NOTIFY_MASK
+            | self.Gdk.EventMask.LEAVE_NOTIFY_MASK
+        )
         close.get_style_context().add_class("x-btn")
-        close.connect("clicked", lambda *_: self.window.close())
+        close.connect("button-press-event", self._close_clicked)
+        close.connect("enter-notify-event", self._close_entered)
+        close.connect("leave-notify-event", self._close_left)
+
+        close_label = self.Gtk.Label(label="×")
+        close_label.set_halign(self.Gtk.Align.CENTER)
+        close_label.set_valign(self.Gtk.Align.CENTER)
+        close_label.get_style_context().add_class("x-btn-label")
+        close.add(close_label)
         header.attach(close, 0, 0, 1, 1)
 
         title = self.Gtk.Label(label="Sound", xalign=0)
@@ -128,6 +146,22 @@ class SettingsWindow:
         refresh.connect("clicked", lambda *_: self.sound_page.refresh())
         header.attach(refresh, 3, 0, 1, 1)
         return header
+
+    def _close_clicked(self, _widget: Any, event: Any) -> bool:
+        if int(getattr(event, "button", 0)) == 1:
+            self.window.close()
+            return True
+        return False
+
+    @staticmethod
+    def _close_entered(widget: Any, _event: Any) -> bool:
+        widget.get_style_context().add_class("hover")
+        return False
+
+    @staticmethod
+    def _close_left(widget: Any, _event: Any) -> bool:
+        widget.get_style_context().remove_class("hover")
+        return False
 
     def _close_requested(self, _window: Any, _event: Any) -> bool:
         self.sound_page.stop()
