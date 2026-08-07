@@ -1,5 +1,8 @@
 # Nix Settings
 
+[![CI](https://github.com/madebycli/nix-settings/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/madebycli/nix-settings/actions/workflows/ci.yml)
+[![Nixpkgs update](https://github.com/madebycli/nix-settings/actions/workflows/update-nixpkgs.yml/badge.svg?branch=main)](https://github.com/madebycli/nix-settings/actions/workflows/update-nixpkgs.yml)
+
 A GTK3 + GtkLayerShell sound center for NixOS.
 
 ## Run directly
