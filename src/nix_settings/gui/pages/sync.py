@@ -16,13 +16,7 @@ from nix_settings.backend.process import BackendCommands, JsonRunner, StreamingP
 from nix_settings.backend.requests import RequestGate
 from nix_settings.gui.github_login import run_login
 from nix_settings.gui.modal import prepare_layer_dialog
-from nix_settings.gui.widgets.common import (
-    action_button,
-    card,
-    page_scroller,
-    stat_row,
-    styled_label,
-)
+from nix_settings.gui.widgets.common import action_button, card, stat_row, styled_label
 from nix_settings.gui.widgets.log_view import LogView
 
 
@@ -53,26 +47,31 @@ class SyncPage:
         self.busy = False
         self._started = False
 
-        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        # Config Sync is a fixed dashboard: only the editors and the log scroll.
+        # The page itself must stay inside the same frozen outer window as Sound.
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         content.get_style_context().add_class("content")
+        content.get_style_context().add_class("sync-content")
+        content.set_hexpand(True)
+        content.set_vexpand(True)
         content.pack_start(self._top_cards(), False, False, 0)
         content.pack_start(self._actions_card(), False, False, 0)
         content.pack_start(self._paths_editor(), False, False, 0)
         content.pack_start(self._progress(), False, False, 0)
-        self.log = LogView(Gtk)
+        self.log = LogView(Gtk, min_height=120)
         content.pack_start(self.log.widget, True, True, 0)
-        self.widget = page_scroller(Gtk, content)
+        self.widget = content
 
     def _top_cards(self) -> Any:
         grid = self.Gtk.Grid()
         grid.set_column_homogeneous(True)
-        grid.set_column_spacing(12)
+        grid.set_column_spacing(8)
         grid.attach(self._account_card(), 0, 0, 1, 1)
         grid.attach(self._repository_card(), 1, 0, 1, 1)
         return grid
 
     def _account_card(self) -> Any:
-        box = card(self.Gtk)
+        box = card(self.Gtk, spacing=7)
         header = self.Gtk.Box(orientation=self.Gtk.Orientation.HORIZONTAL, spacing=8)
         header.pack_start(
             styled_label(self.Gtk, "GITHUB ACCOUNT", "section-title"),
@@ -106,7 +105,7 @@ class SyncPage:
         return box
 
     def _repository_card(self) -> Any:
-        box = card(self.Gtk)
+        box = card(self.Gtk, spacing=5)
         header = self.Gtk.Box(orientation=self.Gtk.Orientation.HORIZONTAL, spacing=8)
         header.pack_start(
             styled_label(self.Gtk, "SYNC REPOSITORY", "section-title"),
@@ -137,12 +136,12 @@ class SyncPage:
         return box
 
     def _actions_card(self) -> Any:
-        box = card(self.Gtk)
+        box = card(self.Gtk, spacing=7)
         box.pack_start(styled_label(self.Gtk, "SYNC ACTIONS", "section-title"), False, False, 0)
         grid = self.Gtk.Grid()
         grid.set_column_homogeneous(True)
         grid.set_column_spacing(8)
-        grid.set_row_spacing(8)
+        grid.set_row_spacing(6)
         actions = (
             ("pull", "Download"),
             ("push", "Upload"),
@@ -172,7 +171,7 @@ class SyncPage:
         return box
 
     def _paths_editor(self) -> Any:
-        box = card(self.Gtk)
+        box = card(self.Gtk, spacing=7)
         header = self.Gtk.Box(orientation=self.Gtk.Orientation.HORIZONTAL, spacing=8)
         header.pack_start(
             styled_label(self.Gtk, "MANAGED DOTFILE PATHS", "section-title"),
@@ -213,7 +212,7 @@ class SyncPage:
         return box
 
     def _editor_column(self, grid: Any, column: int, title: str, hint: str) -> Any:
-        holder = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=6)
+        holder = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=4)
         holder.pack_start(styled_label(self.Gtk, title, "section-title"), False, False, 0)
         holder.pack_start(styled_label(self.Gtk, hint, "card-detail"), False, False, 0)
         view = self.Gtk.TextView()
@@ -221,14 +220,14 @@ class SyncPage:
         view.get_style_context().add_class("config-editor")
         scroll = self.Gtk.ScrolledWindow()
         scroll.set_policy(self.Gtk.PolicyType.AUTOMATIC, self.Gtk.PolicyType.AUTOMATIC)
-        scroll.set_min_content_height(112)
+        scroll.set_min_content_height(78)
         scroll.add(view)
         holder.pack_start(scroll, True, True, 0)
         grid.attach(holder, column, 0, 1, 1)
         return view
 
     def _progress(self) -> Any:
-        box = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=7)
+        box = self.Gtk.Box(orientation=self.Gtk.Orientation.VERTICAL, spacing=4)
         row = self.Gtk.Box(orientation=self.Gtk.Orientation.HORIZONTAL, spacing=8)
         self.operation_status = styled_label(self.Gtk, "Ready", "card-detail")
         row.pack_start(self.operation_status, True, True, 0)
