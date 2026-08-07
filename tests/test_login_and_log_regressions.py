@@ -50,10 +50,38 @@ def test_login_dialog_keeps_backup_terminal_fallback_and_opaque_surface() -> Non
     assert "set_opacity(1.0)" in source
 
 
-def test_log_view_supports_selection_ctrl_c_and_clipboard_button() -> None:
+def test_log_view_uses_native_wayland_clipboard_and_selection_copy() -> None:
     source = (ROOT / "src/nix_settings/gui/widgets/log_view.py").read_text(encoding="utf-8")
     assert "set_cursor_visible(True)" in source
     assert 'connect("key-press-event", self._key_press)' in source
-    assert "get_selection_bound" in source
+    assert "Clipboard.get_default" in source
+    assert "get_has_selection()" in source
+    assert "copy_clipboard(clipboard)" in source
     assert "SELECTION_CLIPBOARD" in source
+    assert 'set_label("Copied")' in source
     assert "clipboard.store()" in source
+
+
+def test_main_shell_is_opaque_and_reuses_compact_title_bar_geometry() -> None:
+    style = (ROOT / "src/nix_settings/gui/style.css").read_text(encoding="utf-8")
+    window = (ROOT / "src/nix_settings/gui/window.py").read_text(encoding="utf-8")
+    modal = (ROOT / "src/nix_settings/gui/modal.py").read_text(encoding="utf-8")
+
+    assert ".nix-settings-root {\n  background: rgb(14, 14, 14);" in style
+    assert ".main-header {\n  min-height: 32px;" in style
+    assert 'header.set_size_request(-1, 32)' in window
+    assert "header.set_margin_top(6)" in window
+    assert "header.set_margin_bottom(6)" in window
+    assert 'add_class("home-icon")' in window
+    assert "font-size: 20px" in style
+    assert "dialog.set_opacity(1.0)" in modal
+    assert 'add_class("nix-settings-modal-content")' in modal
+
+
+def test_sync_dashboard_has_no_outer_page_scrollbar() -> None:
+    source = (ROOT / "src/nix_settings/gui/pages/sync.py").read_text(encoding="utf-8")
+    assert 'add_class("sync-content")' in source
+    assert "self.widget = content" in source
+    assert "page_scroller" not in source
+    assert "LogView(Gtk, min_height=120)" in source
+    assert "scroll.set_min_content_height(78)" in source
