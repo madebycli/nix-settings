@@ -1,20 +1,44 @@
 # Validation
 
-## Automated
+## Executed in the implementation workspace
 
-```bash
+```text
 python -m compileall -q src
-pytest -q
+PYTHONPATH=src pytest -q
+```
+
+Result: 29 tests passed.
+
+Coverage includes default Overview routing, direct Sound routing, six monitor/workarea cases, fixed header geometry, status/update/generation/cleanup parsers, exact update-mode mapping, Config Sync models, path and secret checks, ANSI/log redaction, stale request rejection, helper allowlist, fixed argv construction, desktop entry and GTK4/non-hermetic path guards.
+
+No test performs a real update, generation deletion, system switch, rollback, optimization or Git push.
+
+## Not available in the API execution environment
+
+The environment did not provide `ruff`, `mypy` or `nix`, so these commands were not claimed as executed locally:
+
+```text
 ruff check .
 mypy src
-nix flake check
+nix flake check --no-write-lock-file --print-build-logs
+nix build .#nix-settings
 ```
 
-## Live Wayland and PipeWire validation
+GitHub Actions is expected to run the repository's normal checks after the draft pull request is opened.
 
-```bash
-nix-settings doctor
-nix-settings sound
-```
+## Required before merge
 
-Confirm that the window is a GtkLayerShell surface, opens at its final size, and keeps the 2x2 workspace. Recording should contain only real apps. Sliders must remain stable during PipeWire events. Every stream Route selector must keep the same 300 logical-pixel width on normal and 15-inch displays, with a smaller non-overlapping fallback on narrow monitors. Long labels must ellipsize instead of resizing rows. The close control must stay circular and theme colors must be respected.
+Validate on an actual target NixOS desktop:
+
+1. Overview opens without a visible resize.
+2. Every view keeps identical outer geometry and internal scrolling.
+3. `nix-settings sound` preserves all existing Sound behavior and visual geometry.
+4. GTK foreground/accent colors match the active theme without white or grey fallback surfaces.
+5. Online status and update preview do not mutate the real lock file/profile.
+6. The desktop Polkit agent authenticates refresh, switch, cleanup, optimize and rollback.
+7. No terminal sudo/password prompt appears.
+8. Cancellation and failure restore controls and terminate process groups.
+9. Cleanup blocks unsafe generation/boot states and only deletes the confirmed dry-run set.
+10. `nix profile add github:madebycli/nix-settings#nix-settings` installs successfully.
+
+Do not merge solely from static/API validation; real Wayland, Polkit and NixOS-system behavior remains a release gate.
