@@ -8,7 +8,10 @@ from nix_settings.backend.process import redact_line
 
 class LogView:
     def __init__(self, Gtk: Any, *, max_lines: int = 2000) -> None:
+        from gi.repository import Gdk
+
         self.Gtk = Gtk
+        self.Gdk = Gdk
         self.max_lines = max_lines
         self._lines: deque[str] = deque(maxlen=max_lines)
         self.widget = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -30,9 +33,13 @@ class LogView:
 
         self.view = Gtk.TextView()
         self.view.set_editable(False)
-        self.view.set_cursor_visible(False)
+        # A read-only TextView can still behave like normal selectable text.
+        # Keep the caret/focus enabled so mouse selection and Ctrl+C work.
+        self.view.set_cursor_visible(True)
+        self.view.set_can_focus(True)
         self.view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
         self.view.get_style_context().add_class("log-view")
+        self.view.connect("key-press-event", self._key_press)
         self.buffer = self.view.get_buffer()
         self.error_tag = self.buffer.create_tag("error", weight=700)
         self.scroll = Gtk.ScrolledWindow()
@@ -69,7 +76,29 @@ class LogView:
     def _clear_clicked(self, _button: Any) -> None:
         self.clear()
 
-    def _copy(self, _button: Any) -> None:
-        clipboard = self.Gtk.Clipboard.get_default(self.view.get_display())
-        if clipboard is not None:
-            clipboard.set_text("\n".join(self._lines), -1)
+    def _selection_text(self) -> str | None:
+        start = self.buffer.get_iter_at_mark(self.buffer.get_insert())
+        end = self.buffer.get_iter_at_mark(self.buffer.get_selection_bound())
+        if start.compare(end) == 0:
+            return None
+        if start.compare(end) > 0:
+            start, end = end, start
+        return str(self.buffer.get_text(start, end, True))
+
+    def _copy(self, _button: Any = None) -> None:
+        text = self._selection_text()
+        if text is None:
+            text = "\n".join(self._lines)
+        if not text:
+            return
+        clipboard = self.Gtk.Clipboard.get(self.Gdk.SELECTION_CLIPBOARD)
+        clipboard.set_text(text, -1)
+        clipboard.store()
+
+    def _key_press(self, _view: Any, event: Any) -> bool:
+        control = bool(event.state & self.Gdk.ModifierType.CONTROL_MASK)
+        key_name = self.Gdk.keyval_name(event.keyval) or ""
+        if control and key_name.lower() == "c":
+            self._copy()
+            return True
+        return False
