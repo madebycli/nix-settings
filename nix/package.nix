@@ -16,6 +16,7 @@
   gobject-introspection,
   pipewire,
   wireplumber,
+  wl-clipboard,
   polkit,
   util-linux,
   coreutils,
@@ -99,6 +100,7 @@ let
   runtimePath = lib.makeBinPath [
     pipewire
     wireplumber
+    wl-clipboard
     polkit
     util-linux
     coreutils
