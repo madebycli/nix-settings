@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from nix_settings.backend.cache import JsonCache
 from nix_settings.backend.models import SystemStatus, format_bytes
 from nix_settings.backend.process import BackendCommands, JsonRunner
 from nix_settings.backend.requests import RequestGate
@@ -20,6 +21,8 @@ class OverviewPage:
         self.GLib = GLib
         self.open_page = open_page
         self.runner = JsonRunner(timeout=45.0)
+        self.cache = JsonCache()
+        self._has_snapshot = False
         self.local_gate: RequestGate[SystemStatus] = RequestGate()
         self.online_gate: RequestGate[SystemStatus] = RequestGate()
         self._started = False
@@ -130,6 +133,16 @@ class OverviewPage:
         if self._started:
             return
         self._started = True
+        cached = self.cache.load("system-status")
+        if cached is not None:
+            try:
+                value = SystemStatus.from_json(cached)
+            except ValueError:
+                pass
+            else:
+                self._apply_status(value)
+                self.values["snapshot"].set_text(f"Cached · {value.updated_at}")
+                self.values["online"].set_text("Refreshing…")
         self.refresh()
 
     def refresh(self) -> None:
@@ -139,10 +152,14 @@ class OverviewPage:
         self.local_gate.run(generation, self._load_local, self._local_finished)
 
     def _load_local(self) -> SystemStatus:
-        return SystemStatus.from_json(self.runner.run(BackendCommands.status(online=False)).json())
+        payload = self.runner.run(BackendCommands.status(online=False)).json()
+        self.cache.save("system-status", payload)
+        return SystemStatus.from_json(payload)
 
     def _load_online(self) -> SystemStatus:
-        return SystemStatus.from_json(self.runner.run(BackendCommands.status(online=True)).json())
+        payload = self.runner.run(BackendCommands.status(online=True)).json()
+        self.cache.save("system-status", payload)
+        return SystemStatus.from_json(payload)
 
     def _local_finished(
         self,
@@ -153,7 +170,9 @@ class OverviewPage:
 
     def _apply_local(self, value: SystemStatus | None, error: Exception | None) -> bool:
         if error is not None or value is None:
-            self.values["snapshot"].set_text("Failed")
+            self.values["snapshot"].set_text(
+                "Cached · refresh failed" if self._has_snapshot else "Failed"
+            )
             self.error.set_text(str(error or "Unknown status error"))
         else:
             self._apply_status(value)
@@ -172,7 +191,7 @@ class OverviewPage:
 
     def _apply_online(self, value: SystemStatus | None, error: Exception | None) -> bool:
         if error is not None or value is None:
-            self.values["online"].set_text("Failed")
+            self.values["online"].set_text("Cached" if self._has_snapshot else "Failed")
             self.error.set_text(str(error or "Online status failed"))
         else:
             self._apply_status(value)
@@ -180,6 +199,7 @@ class OverviewPage:
         return False
 
     def _apply_status(self, value: SystemStatus) -> None:
+        self._has_snapshot = True
         self.values["host"].set_text(value.host)
         self.values["profile"].set_text(value.profile)
         current = "—" if value.current_generation is None else str(value.current_generation)

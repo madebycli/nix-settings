@@ -218,6 +218,41 @@ class GenerationStatus:
 
 
 @dataclass(frozen=True)
+class GitHubSyncStatus:
+    gh_installed: bool
+    authenticated: bool
+    login: str | None
+    permission: str | None
+    can_push: bool
+    remote_url: str | None
+    remote_ok: bool
+    git_name: str | None
+    git_email: str | None
+    credential_helper_ready: bool
+    error: str | None
+
+    @classmethod
+    def from_json(cls, value: object) -> GitHubSyncStatus:
+        data = _mapping(value, "github")
+        return cls(
+            gh_installed=_boolean(data.get("ghInstalled", False), "github.ghInstalled"),
+            authenticated=_boolean(data.get("authenticated", False), "github.authenticated"),
+            login=_string(data.get("login"), "github.login", optional=True),
+            permission=_string(data.get("permission"), "github.permission", optional=True),
+            can_push=_boolean(data.get("canPush", False), "github.canPush"),
+            remote_url=_string(data.get("remoteUrl"), "github.remoteUrl", optional=True),
+            remote_ok=_boolean(data.get("remoteOk", False), "github.remoteOk"),
+            git_name=_string(data.get("gitName"), "github.gitName", optional=True),
+            git_email=_string(data.get("gitEmail"), "github.gitEmail", optional=True),
+            credential_helper_ready=_boolean(
+                data.get("credentialHelperReady", False),
+                "github.credentialHelperReady",
+            ),
+            error=_string(data.get("error"), "github.error", optional=True),
+        )
+
+
+@dataclass(frozen=True)
 class SyncStatus:
     repository_path: str
     profile: str
@@ -235,6 +270,7 @@ class SyncStatus:
     conflicts: tuple[str, ...]
     planned_action: str
     backups: tuple[str, ...]
+    github: GitHubSyncStatus
     errors: tuple[str, ...]
 
     @classmethod
@@ -258,6 +294,7 @@ class SyncStatus:
             conflicts=tuple(str(item) for item in changes.get("conflicts", [])),
             planned_action=_string(data.get("plannedAction"), "plannedAction") or "",
             backups=tuple(str(item) for item in data.get("backups", [])),
+            github=GitHubSyncStatus.from_json(data.get("github", {})),
             errors=_errors(data.get("errors", [])),
         )
 

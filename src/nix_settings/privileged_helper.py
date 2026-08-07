@@ -70,13 +70,18 @@ def executable(name: str) -> str:
     value = shutil.which(name)
     if value is None:
         raise HelperError(f"required program is missing: {name}")
+    invocation = str(Path(value).absolute())
     resolved = str(Path(value).resolve())
-    if not (
-        resolved.startswith("/nix/store/")
-        or resolved.startswith("/run/current-system/")
-    ):
-        raise HelperError(f"refusing non-Nix executable path: {resolved}")
-    return resolved
+
+    def trusted(path: str) -> bool:
+        return path.startswith("/nix/store/") or path.startswith("/run/current-system/")
+
+    if not trusted(invocation) or not trusted(resolved):
+        raise HelperError(f"refusing non-Nix executable path: {invocation} -> {resolved}")
+    # Preserve the original entry-point name. Nix legacy tools such as nix-env
+    # are multi-call symlinks to `nix`; resolving the symlink before execution
+    # changes argv[0] and makes legacy flags such as --profile invalid.
+    return invocation
 
 
 def safe_env() -> dict[str, str]:

@@ -3,8 +3,10 @@ from __future__ import annotations
 import threading
 from typing import Any
 
+from nix_settings.backend.cache import JsonCache
 from nix_settings.backend.models import SystemStatus
 from nix_settings.backend.process import BackendCommands, JsonRunner, StreamingProcess, config_repo
+from nix_settings.gui.modal import prepare_layer_dialog
 from nix_settings.gui.widgets.common import (
     action_button,
     card,
@@ -21,6 +23,8 @@ class SystemPage:
         self.GLib = GLib
         self.parent_window = parent_window
         self.runner = JsonRunner(timeout=90.0)
+        self.cache = JsonCache()
+        self._has_status = False
         self.operation: StreamingProcess | None = None
         self.values: dict[str, Any] = {}
         self._started = False
@@ -79,6 +83,12 @@ class SystemPage:
         if self._started:
             return
         self._started = True
+        cached = self.cache.load("system-status")
+        if cached is not None:
+            try:
+                self._apply_status(SystemStatus.from_json(cached), None)
+            except ValueError:
+                pass
         self.refresh()
 
     def _refresh_clicked(self, _button: Any) -> None:
@@ -89,9 +99,9 @@ class SystemPage:
 
     def _load_status(self) -> None:
         try:
-            value = SystemStatus.from_json(
-                self.runner.run(BackendCommands.status(online=False)).json()
-            )
+            payload = self.runner.run(BackendCommands.status(online=False)).json()
+            self.cache.save("system-status", payload)
+            value = SystemStatus.from_json(payload)
             error: Exception | None = None
         except Exception as exc:
             value = None
@@ -100,9 +110,10 @@ class SystemPage:
 
     def _apply_status(self, value: SystemStatus | None, error: Exception | None) -> bool:
         if error is not None or value is None:
-            self.values["state"].set_text("Failed")
+            self.values["state"].set_text("Cached · refresh failed" if self._has_status else "Failed")
             self.log.append(str(error or "Unknown status error"), error=True)
             return False
+        self._has_status = True
         self.values["host"].set_text(value.host)
         self.values["profile"].set_text(value.profile)
         self.values["generation"].set_text(str(value.current_generation or "—"))
@@ -126,6 +137,7 @@ class SystemPage:
             "The restricted helper validates the repository and profile before running nixos-rebuild."
         )
         dialog.add_button("Build & switch", self.Gtk.ResponseType.OK)
+        prepare_layer_dialog(dialog)
         response = dialog.run()
         dialog.destroy()
         if response != self.Gtk.ResponseType.OK:

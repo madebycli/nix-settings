@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from nix_settings.backend.cache import JsonCache
 from nix_settings.backend.models import CleanPreview, SystemStatus, format_bytes
 from nix_settings.backend.process import BackendCommands, JsonRunner, StreamingProcess
 from nix_settings.backend.requests import RequestGate
+from nix_settings.gui.modal import prepare_layer_dialog
 from nix_settings.gui.widgets.common import (
     action_button,
     card,
@@ -21,6 +23,8 @@ class StoragePage:
         self.GLib = GLib
         self.parent_window = parent_window
         self.runner = JsonRunner(timeout=120.0)
+        self.cache = JsonCache()
+        self._has_status = False
         self.status_gate: RequestGate[SystemStatus] = RequestGate()
         self.clean_gate: RequestGate[CleanPreview] = RequestGate()
         self.operation: StreamingProcess | None = None
@@ -114,16 +118,25 @@ class StoragePage:
         if self._started:
             return
         self._started = True
+        cached = self.cache.load("system-status")
+        if cached is not None:
+            try:
+                self._apply_status(SystemStatus.from_json(cached), None)
+            except ValueError:
+                pass
         self.refresh()
+
+    def _load_status(self) -> SystemStatus:
+        payload = self.runner.run(BackendCommands.status(online=False)).json()
+        self.cache.save("system-status", payload)
+        return SystemStatus.from_json(payload)
 
     def refresh(self) -> None:
         generation = self.status_gate.begin()
         self.values["status"].set_text("Loading…")
         self.status_gate.run(
             generation,
-            lambda: SystemStatus.from_json(
-                self.runner.run(BackendCommands.status(online=False)).json()
-            ),
+            self._load_status,
             self._status_finished,
         )
 
@@ -132,9 +145,10 @@ class StoragePage:
 
     def _apply_status(self, value: SystemStatus | None, error: Exception | None) -> bool:
         if error is not None or value is None:
-            self.values["status"].set_text("Failed")
+            self.values["status"].set_text("Cached · refresh failed" if self._has_status else "Failed")
             self.log.append(str(error or "Unknown storage status error"), error=True)
             return False
+        self._has_status = True
         self.values["store"].set_text(format_bytes(value.store_bytes))
         self.values["closure"].set_text(format_bytes(value.closure_bytes))
         self.values["disk_used"].set_text(format_bytes(value.disk_used_bytes))
@@ -210,6 +224,7 @@ class StoragePage:
             f"Verified dry-run: keep {preview.keep_backups} rollback generations; remove {remove}."
         )
         dialog.add_button("Clean", self.Gtk.ResponseType.OK)
+        prepare_layer_dialog(dialog)
         response = dialog.run()
         dialog.destroy()
         if response != self.Gtk.ResponseType.OK:
@@ -228,6 +243,7 @@ class StoragePage:
             "This deduplicates store paths and does not delete system generations."
         )
         dialog.add_button("Optimize", self.Gtk.ResponseType.OK)
+        prepare_layer_dialog(dialog)
         response = dialog.run()
         dialog.destroy()
         if response == self.Gtk.ResponseType.OK:

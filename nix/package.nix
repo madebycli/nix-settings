@@ -16,6 +16,7 @@
   gobject-introspection,
   pipewire,
   wireplumber,
+  wl-clipboard,
   polkit,
   util-linux,
   coreutils,
@@ -23,6 +24,7 @@
   gnugrep,
   gnused,
   gawk,
+  gh,
   git,
   jq,
   nix,
@@ -98,6 +100,7 @@ let
   runtimePath = lib.makeBinPath [
     pipewire
     wireplumber
+    wl-clipboard
     polkit
     util-linux
     coreutils
@@ -105,6 +108,7 @@ let
     gnugrep
     gnused
     gawk
+    gh
     git
     jq
     nix

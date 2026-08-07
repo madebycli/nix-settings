@@ -3,7 +3,7 @@
 }
 
 .nix-settings-root {
-  background: rgba(14, 14, 14, 0.97);
+  background: rgb(14, 14, 14);
   color: @theme_fg_color;
   border: 1px solid alpha(@theme_fg_color, 0.12);
   border-radius: 12px;
@@ -31,19 +31,19 @@ button,
 
 .picker-title {
   color: @theme_fg_color;
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 700;
 }
 
 .section-title {
   color: alpha(@theme_fg_color, 0.48);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .stream-title {
   color: alpha(@theme_fg_color, 0.90);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -52,22 +52,26 @@ button,
 .state-detail,
 .control-label {
   color: alpha(@theme_fg_color, 0.56);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .state-title {
   color: alpha(@theme_fg_color, 0.90);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
 }
 
 .volume-value {
   color: alpha(@theme_fg_color, 0.78);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .content {
   padding: 12px 14px 14px 14px;
+}
+
+.sync-content {
+  padding: 8px 12px 10px 12px;
 }
 
 .card,
@@ -79,6 +83,10 @@ button,
 
 .card {
   padding: 10px;
+}
+
+.sync-content .card {
+  padding: 8px;
 }
 
 .device-card {
@@ -117,8 +125,23 @@ button,
 .x-btn-label {
   color: @theme_fg_color;
   font-family: monospace;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
+  padding: 0;
+  margin: 0;
+}
+
+.home-action {
+  padding: 0;
+  min-width: 40px;
+  min-height: 32px;
+}
+
+.home-icon {
+  color: alpha(@theme_fg_color, 0.90);
+  font-family: monospace;
+  font-size: 20px;
+  font-weight: 700;
   padding: 0;
   margin: 0;
 }
@@ -129,7 +152,7 @@ button,
   border-radius: 8px;
   min-height: 30px;
   padding: 3px 14px;
-  font-size: 12px;
+  font-size: 13px;
   font-family: monospace;
   box-shadow: none;
 }
@@ -185,7 +208,7 @@ spinbutton {
   border-radius: 6px;
   min-height: 32px;
   padding: 0 10px;
-  font-size: 12px;
+  font-size: 13px;
   font-family: monospace;
   box-shadow: none;
 }
@@ -273,25 +296,25 @@ scrollbar slider:hover {
 
 .card-title {
   color: alpha(@theme_fg_color, 0.90);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
 }
 
 .card-detail,
 .stat-key {
   color: alpha(@theme_fg_color, 0.58);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .stat-value {
   color: alpha(@theme_fg_color, 0.88);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .status-text {
   color: alpha(@theme_fg_color, 0.78);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -313,7 +336,7 @@ scrollbar slider:hover {
   min-height: 22px;
   color: alpha(@theme_fg_color, 0.72);
   font-family: monospace;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .deck-progress trough {
@@ -330,6 +353,18 @@ scrollbar slider:hover {
   min-height: 14px;
 }
 
+.sync-content .deck-progress {
+  min-height: 18px;
+}
+
+.sync-content .deck-progress trough {
+  min-height: 14px;
+}
+
+.sync-content .deck-progress progress {
+  min-height: 10px;
+}
+
 .log-scroll,
 .config-editor {
   background: rgba(14, 14, 14, 0.88);
@@ -344,13 +379,28 @@ scrollbar slider:hover {
   background: rgba(14, 14, 14, 0.92);
   color: alpha(@theme_fg_color, 0.74);
   font-family: monospace;
-  font-size: 11px;
+  font-size: 12px;
+}
+
+.nix-settings-modal,
+.nix-settings-modal-content {
+  background: rgb(14, 14, 14);
+  color: @theme_fg_color;
 }
 
 .layout-compact .content {
   padding: 10px 11px 12px 11px;
 }
 
+.layout-compact .sync-content {
+  padding: 7px 9px 8px 9px;
+}
+
 .layout-compact .card {
   padding: 8px;
+}
+
+.main-header {
+  min-height: 32px;
+  background: rgb(14, 14, 14);
 }

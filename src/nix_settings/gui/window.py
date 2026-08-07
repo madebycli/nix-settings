@@ -4,7 +4,7 @@ from typing import Any
 
 from nix_settings.audio.backend import AudioBackend
 from nix_settings.audio.models import AudioSnapshot
-from nix_settings.gui.layout import HEADER_HEIGHT, layout_mode, window_size
+from nix_settings.gui.layout import layout_mode, window_size
 from nix_settings.gui.pages.generations import GenerationsPage
 from nix_settings.gui.pages.overview import OverviewPage
 from nix_settings.gui.pages.sound import SoundPage
@@ -142,10 +142,16 @@ class SettingsWindow:
         return root
 
     def _header(self) -> Any:
+        # Keep the original Sound title-bar geometry. The content below may
+        # change pages, but the chrome itself must never grow or shift.
         header = self.Gtk.Grid()
+        header.get_style_context().add_class("main-header")
         header.set_column_spacing(10)
         header.set_hexpand(True)
-        header.set_size_request(-1, HEADER_HEIGHT)
+        header.set_vexpand(False)
+        header.set_size_request(-1, 32)
+        header.set_margin_top(6)
+        header.set_margin_bottom(6)
         header.set_margin_start(12)
         header.set_margin_end(12)
 
@@ -172,10 +178,17 @@ class SettingsWindow:
         close.add(close_label)
         header.attach(close, 0, 0, 1, 1)
 
-        self.home_button = self.Gtk.Button(label="⌂")
-        self.home_button.set_size_request(32, 30)
+        self.home_button = self.Gtk.Button()
+        self.home_button.set_size_request(40, 32)
+        self.home_button.set_valign(self.Gtk.Align.CENTER)
         self.home_button.set_tooltip_text("Overview")
         self.home_button.get_style_context().add_class("flat-action")
+        self.home_button.get_style_context().add_class("home-action")
+        home_label = self.Gtk.Label(label="⌂")
+        home_label.set_halign(self.Gtk.Align.CENTER)
+        home_label.set_valign(self.Gtk.Align.CENTER)
+        home_label.get_style_context().add_class("home-icon")
+        self.home_button.add(home_label)
         self.home_button.connect("clicked", lambda *_: self.show_page("overview"))
         header.attach(self.home_button, 1, 0, 1, 1)
 
@@ -192,6 +205,7 @@ class SettingsWindow:
         self.refresh_button = self.Gtk.Button(label="Refresh")
         self.refresh_button.set_size_request(88, 30)
         self.refresh_button.set_halign(self.Gtk.Align.END)
+        self.refresh_button.set_valign(self.Gtk.Align.CENTER)
         self.refresh_button.get_style_context().add_class("flat-action")
         self.refresh_button.connect("clicked", self._refresh_current)
         header.attach(self.refresh_button, 4, 0, 1, 1)
