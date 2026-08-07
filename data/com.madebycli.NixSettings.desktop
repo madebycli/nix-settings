@@ -1,9 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Nix Settings Sound
-Comment=PipeWire sound center for NixOS
-Exec=nix-settings sound
+Name=Nix Settings
+Comment=GTK3 layer-shell NixOS system management
+Exec=nix-settings
 Icon=com.madebycli.NixSettings
 Terminal=false
-Categories=Settings;AudioVideo;Audio;
+Categories=Settings;System;
 StartupNotify=false
