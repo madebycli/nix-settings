@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import shutil
+import subprocess
 from collections import deque
 from typing import Any
 
@@ -81,23 +83,47 @@ class LogView:
             clipboard = self.Gtk.Clipboard.get(self.Gdk.SELECTION_CLIPBOARD)
         return clipboard
 
-    def _buffer_text(self) -> str:
+    def _text_to_copy(self) -> str:
+        if self.buffer.get_has_selection():
+            start = self.buffer.get_iter_at_mark(self.buffer.get_insert())
+            end = self.buffer.get_iter_at_mark(self.buffer.get_selection_bound())
+            if start.compare(end) > 0:
+                start, end = end, start
+            return str(self.buffer.get_text(start, end, True))
         start, end = self.buffer.get_bounds()
         return str(self.buffer.get_text(start, end, True)).rstrip("\n")
 
+    @staticmethod
+    def _copy_wayland(text: str) -> bool:
+        executable = shutil.which("wl-copy")
+        if executable is None:
+            return False
+        try:
+            result = subprocess.run(
+                [executable, "--type", "text/plain;charset=utf-8"],
+                input=text,
+                text=True,
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=5,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        return result.returncode == 0
+
     def _copy(self, _button: Any = None) -> None:
+        text = self._text_to_copy()
+        if not text:
+            return
+
+        # The application is Wayland-only, so use the compositor-native
+        # clipboard path first. GTK remains a fallback for dev/test sessions.
+        wayland_ok = self._copy_wayland(text)
         clipboard = self._clipboard()
-        if self.buffer.get_has_selection():
-            self.buffer.copy_clipboard(clipboard)
-        else:
-            text = self._buffer_text()
-            if not text:
-                return
-            clipboard.set_text(text, -1)
-        # Keep the application as the clipboard owner under Wayland and also
-        # request persistence where a clipboard manager is available.
+        clipboard.set_text(text, -1)
         clipboard.store()
-        self.copy_button.set_label("Copied")
+        self.copy_button.set_label("Copied" if wayland_ok else "Copied (GTK)")
         self.GLib.timeout_add(900, self._reset_copy_label)
 
     def _reset_copy_label(self) -> bool:
