@@ -18,7 +18,14 @@ button,
 .state-title,
 .state-detail,
 .control-label,
-.volume-value {
+.volume-value,
+.card-title,
+.card-detail,
+.stat-key,
+.stat-value,
+.status-text,
+.log-view,
+.config-editor {
   font-family: monospace;
 }
 
@@ -116,16 +123,20 @@ button,
   margin: 0;
 }
 
-.flat-action {
-  background: alpha(@theme_fg_color, 0.05);
+.flat-action,
+.primary-action {
   color: alpha(@theme_fg_color, 0.84);
-  border: 1px solid alpha(@theme_fg_color, 0.13);
   border-radius: 8px;
   min-height: 30px;
   padding: 3px 14px;
   font-size: 12px;
   font-family: monospace;
   box-shadow: none;
+}
+
+.flat-action {
+  background: alpha(@theme_fg_color, 0.05);
+  border: 1px solid alpha(@theme_fg_color, 0.13);
 }
 
 .flat-action:hover {
@@ -140,7 +151,34 @@ button,
   border-color: alpha(@theme_selected_bg_color, 0.70);
 }
 
-combobox button {
+.primary-action {
+  background: alpha(@theme_selected_bg_color, 0.32);
+  color: @theme_fg_color;
+  border: 1px solid alpha(@theme_selected_bg_color, 0.68);
+  font-weight: 700;
+}
+
+.primary-action:hover {
+  background: alpha(@theme_selected_bg_color, 0.46);
+  border-color: alpha(@theme_selected_bg_color, 0.88);
+}
+
+.flat-action:disabled,
+.primary-action:disabled,
+.nav-card:disabled {
+  opacity: 0.38;
+}
+
+button:focus,
+combobox button:focus,
+spinbutton:focus,
+textview:focus {
+  border-color: alpha(@theme_selected_bg_color, 0.72);
+  outline-color: alpha(@theme_selected_bg_color, 0.72);
+}
+
+combobox button,
+spinbutton {
   background: alpha(@theme_fg_color, 0.05);
   color: alpha(@theme_fg_color, 0.90);
   border: 1px solid alpha(@theme_fg_color, 0.12);
@@ -153,7 +191,9 @@ combobox button {
 }
 
 combobox button:hover,
-combobox button:focus {
+combobox button:focus,
+spinbutton:hover,
+spinbutton:focus {
   border-color: alpha(@theme_selected_bg_color, 0.72);
 }
 
@@ -229,4 +269,88 @@ scrollbar slider {
 
 scrollbar slider:hover {
   background: alpha(@theme_fg_color, 0.28);
+}
+
+.card-title {
+  color: alpha(@theme_fg_color, 0.90);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.card-detail,
+.stat-key {
+  color: alpha(@theme_fg_color, 0.58);
+  font-size: 11px;
+}
+
+.stat-value {
+  color: alpha(@theme_fg_color, 0.88);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-text {
+  color: alpha(@theme_fg_color, 0.78);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.nav-card {
+  background: alpha(@theme_fg_color, 0.03);
+  color: @theme_fg_color;
+  border: 1px solid alpha(@theme_fg_color, 0.08);
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: none;
+}
+
+.nav-card:hover {
+  background: alpha(@theme_fg_color, 0.07);
+  border-color: alpha(@theme_selected_bg_color, 0.52);
+}
+
+.deck-progress {
+  min-height: 22px;
+  color: alpha(@theme_fg_color, 0.72);
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.deck-progress trough {
+  background: alpha(@theme_fg_color, 0.05);
+  border: 1px solid alpha(@theme_fg_color, 0.10);
+  border-radius: 999px;
+  min-height: 18px;
+  padding: 2px;
+}
+
+.deck-progress progress {
+  background: alpha(@theme_selected_bg_color, 0.78);
+  border-radius: 999px;
+  min-height: 14px;
+}
+
+.log-scroll,
+.config-editor {
+  background: rgba(14, 14, 14, 0.88);
+  border: 1px solid alpha(@theme_fg_color, 0.08);
+  border-radius: 10px;
+}
+
+.log-view,
+.log-view text,
+.config-editor,
+.config-editor text {
+  background: rgba(14, 14, 14, 0.92);
+  color: alpha(@theme_fg_color, 0.74);
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.layout-compact .content {
+  padding: 10px 11px 12px 11px;
+}
+
+.layout-compact .card {
+  padding: 8px;
 }

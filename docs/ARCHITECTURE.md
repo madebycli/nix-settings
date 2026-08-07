@@ -1,15 +1,35 @@
 # Architecture
 
-Nix Settings keeps presentation and audio control separate.
+## Fixed GTK3 layer-shell surface
 
-- `audio.models` defines immutable typed data passed to the UI.
-- `audio.pipewire` converts structured `pw-dump` JSON into those models.
-- `audio.commands` is the only raw `wpctl` command-construction layer.
-- `audio.wireplumber` implements the backend interface.
-- `audio.monitor` owns the long-running event subscription and reconnect loop.
-- `gui.pages.sound` receives snapshots and dispatches background operations.
-- worker results cross into GTK through `GLib.idle_add` or bounded timeouts.
+`SettingsWindow` owns the only `Gtk.ApplicationWindow`. GtkLayerShell is initialized once, the logical monitor workarea is read once, and the calculated size is applied before the window is shown. A direct `Gtk.Stack` with transitions disabled holds the fixed application views. There is no secondary top-level window and no separate routing framework.
 
-The graphical process uses GTK3 and `GtkLayerShell`. It requires Wayland and deliberately does not fall back to a normal floating window. `nix-settings sound` opens only the sound center, without a settings sidebar or unfinished pages. The stable `Gtk.Application` ID provides single-instance behavior.
+The existing `SoundPage` is instantiated unchanged and only receives the same shared outer frame. It starts its monitor and initial refresh when Sound is first shown.
 
-Sound controls are initialized before their signal handlers are connected. PipeWire events are debounced, slider writes are delayed until dragging finishes, and the vertical adjustment is restored after snapshot rendering. These rules prevent duplicate operations and scroll jumps.
+## Views
+
+- Overview: native cards populated from typed `nix-status --json` data.
+- Updates: exact nix-config mode mapping, safe preview, confirmation and NDJSON operation events.
+- Config Sync: read-only structured state plus existing `config-sync` actions and managed-path editor.
+- Generations: structured list, comparison and restricted rollback.
+- Storage: status, mandatory cleanup preview and separate optimization.
+- System: health snapshot, doctor and restricted build/switch.
+- Sound: existing PipeWire/WirePlumber implementation.
+
+All views scroll inside the frozen frame. Header height and card/control geometry are shared.
+
+## Backend boundary
+
+`backend.models` validates stable JSON contracts. `backend.process` starts argv lists with `shell=False`, a controlled environment and new process groups. `RequestGate` assigns monotonically increasing generations so stale worker results cannot replace newer UI state. GTK mutations are handed back through `GLib.idle_add`.
+
+Long-running actions use NDJSON-style events and a native read-only `Gtk.TextView`. The log strips ANSI sequences, redacts common credential assignments, retains at most 2,000 lines and only follows the end while the user remains at the bottom.
+
+## Privilege boundary
+
+Unprivileged work includes status, Git relation, update preview, profile metadata, Config Sync comparison and local statistics.
+
+The packaged helper is invoked through `pkexec` and a system-installed Polkit policy. It accepts a fixed operation allowlist and validates caller UID, repository location/ownership/remote, profile names, arguments and executable paths. It never accepts a command string. The desktop Polkit agent owns authentication.
+
+## Backend repository
+
+`madebycli/nix-config` remains the business-logic source. Text CLI output stays compatible while `--json` adds read-only contracts. Config Sync's adapter imports the current backend module, including its manifests, checksums, secret detection and conflict classification. The terminal scripts remain usable without Nix Settings.

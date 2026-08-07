@@ -16,6 +16,17 @@
   gobject-introspection,
   pipewire,
   wireplumber,
+  polkit,
+  util-linux,
+  coreutils,
+  findutils,
+  gnugrep,
+  gnused,
+  gawk,
+  git,
+  jq,
+  nix,
+  nixos-rebuild,
 }:
 
 let
@@ -84,7 +95,21 @@ let
     shared-mime-info
     hicolor-icon-theme
   ];
-  runtimePath = lib.makeBinPath [ pipewire wireplumber ];
+  runtimePath = lib.makeBinPath [
+    pipewire
+    wireplumber
+    polkit
+    util-linux
+    coreutils
+    findutils
+    gnugrep
+    gnused
+    gawk
+    git
+    jq
+    nix
+    nixos-rebuild
+  ];
   pixbufLoaders = "${gdk-pixbuf}/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache";
   fontconfigFile = "${fontconfig.out}/etc/fonts/fonts.conf";
 in
@@ -99,8 +124,22 @@ stdenvNoCC.mkDerivation {
     runHook preInstall
     libexec="$out/libexec/nix-settings"
     mkdir -p "$libexec" "$out/bin" "$out/share/applications" \
-      "$out/share/icons/hicolor/scalable/apps" "$out/share/doc/nix-settings"
+      "$out/share/icons/hicolor/scalable/apps" "$out/share/doc/nix-settings" \
+      "$out/share/polkit-1/actions"
     cp -r src/nix_settings "$libexec/"
+
+    cat > "$out/libexec/nix-settings-helper" <<PY
+#!${python.interpreter}
+import os
+import runpy
+import sys
+
+sys.dont_write_bytecode = True
+os.environ["PATH"] = "${runtimePath}"
+sys.path.insert(0, "$libexec")
+runpy.run_module("nix_settings.privileged_helper", run_name="__main__")
+PY
+    chmod 0555 "$out/libexec/nix-settings-helper"
 
     cat > "$out/bin/nix-settings" <<PY
 #!${python.interpreter}
@@ -121,11 +160,15 @@ prepend("XDG_DATA_DIRS", "${dataPath}")
 prepend("PATH", "${runtimePath}")
 os.environ.setdefault("GDK_PIXBUF_MODULE_FILE", "${pixbufLoaders}")
 os.environ.setdefault("FONTCONFIG_FILE", "${fontconfigFile}")
+os.environ["NIX_SETTINGS_HELPER"] = "$out/libexec/nix-settings-helper"
 sys.path.insert(0, "$libexec")
 runpy.run_module("nix_settings", run_name="__main__")
 PY
     chmod +x "$out/bin/nix-settings"
 
+    substitute data/com.madebycli.NixSettings.policy.in \
+      "$out/share/polkit-1/actions/com.madebycli.NixSettings.policy" \
+      --replace-fail '@HELPER@' "$out/libexec/nix-settings-helper"
     install -m644 data/com.madebycli.NixSettings.desktop "$out/share/applications/"
     install -m644 data/icons/hicolor/scalable/apps/com.madebycli.NixSettings.svg \
       "$out/share/icons/hicolor/scalable/apps/"
@@ -142,6 +185,8 @@ PY
     chmod 700 "$XDG_RUNTIME_DIR"
 
     test "$("$out/bin/nix-settings" --version)" = "nix-settings ${packageVersion}"
+    "$out/bin/nix-settings" --help | grep -q overview
+    "$out/bin/nix-settings" --help | grep -q sound
     "$out/bin/nix-settings" --help | grep -q doctor
     set +e
     "$out/bin/nix-settings" doctor > doctor.txt
@@ -150,17 +195,19 @@ PY
     test "$result" -ne 0
     grep -q 'GTK 3' doctor.txt
     grep -q 'GTK Layer Shell' doctor.txt
+    grep -q 'com.madebycli.NixSettings.manage' \
+      "$out/share/polkit-1/actions/com.madebycli.NixSettings.policy"
 
-    if grep -R -E '/usr/bin/python|/usr/bin/env|Gtk4LayerShell|Gtk-4.0' \
+    if grep -R -E '/usr/bin/python|/usr/bin/env|Gtk4LayerShell|Gtk-4.0|shell=True' \
       "$out/bin" "$out/libexec/nix-settings"; then
-      echo "non-hermetic path or GTK4 reference found in Nix Settings output" >&2
+      echo "non-hermetic path, GTK4 reference, or shell=True found in Nix Settings output" >&2
       exit 1
     fi
     runHook postInstallCheck
   '';
 
   meta = {
-    description = "GTK3 layer-shell sound center for NixOS";
+    description = "GTK3 layer-shell NixOS system management";
     homepage = "https://github.com/madebycli/nix-settings";
     license = lib.licenses.mit;
     mainProgram = "nix-settings";
