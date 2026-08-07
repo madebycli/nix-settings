@@ -77,7 +77,7 @@ class SyncPage:
             True,
             0,
         )
-        self.github_badge = styled_label(self.Gtk, "CHECKING", "status-chip", xalign=0.5)
+        self.github_badge = styled_label(self.Gtk, "CHECKING", "status-text", xalign=0.5)
         self.github_badge.set_size_request(112, 28)
         header.pack_end(self.github_badge, False, False, 0)
         box.pack_start(header, False, False, 0)
@@ -232,7 +232,7 @@ class SyncPage:
         self.progress = self.Gtk.ProgressBar()
         self.progress.set_show_text(True)
         self.progress.set_text("Waiting")
-        self.progress.get_style_context().add_class("sync-progress")
+        self.progress.get_style_context().add_class("deck-progress")
         box.pack_start(row, False, False, 0)
         box.pack_start(self.progress, False, False, 0)
         return box
