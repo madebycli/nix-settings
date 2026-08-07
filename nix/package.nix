@@ -23,6 +23,7 @@
   gnugrep,
   gnused,
   gawk,
+  gh,
   git,
   jq,
   nix,
@@ -105,6 +106,7 @@ let
     gnugrep
     gnused
     gawk
+    gh
     git
     jq
     nix
