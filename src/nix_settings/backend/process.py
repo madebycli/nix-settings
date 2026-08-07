@@ -176,6 +176,16 @@ def config_repo() -> Path | None:
     return None
 
 
+SYSTEM_PKEXEC = Path("/run/wrappers/bin/pkexec")
+
+
+def resolve_pkexec() -> str | None:
+    """Prefer the NixOS setuid wrapper over an immutable-store pkexec on PATH."""
+    if SYSTEM_PKEXEC.is_file() and os.access(SYSTEM_PKEXEC, os.X_OK):
+        return str(SYSTEM_PKEXEC)
+    return shutil.which("pkexec")
+
+
 class BackendCommands:
     @staticmethod
     def status(*, online: bool) -> list[str]:
@@ -210,18 +220,30 @@ class BackendCommands:
         return result
 
     @staticmethod
-    def sync_action(command: str, scope: str) -> list[str]:
+    def sync_action(
+        command: str,
+        scope: str,
+        *,
+        conflict_policy: str | None = None,
+    ) -> list[str]:
         allowed = {"status", "push", "pull", "sync", "init", "history", "doctor"}
         if command not in allowed:
             raise ValueError("unsupported config-sync action")
-        return ["config-sync", command, "--scope", scope]
+        result = ["config-sync", command, "--scope", scope]
+        if conflict_policy is not None:
+            if command not in {"push", "pull", "sync"}:
+                raise ValueError("conflict policy is only valid for sync operations")
+            if conflict_policy not in {"local", "repository"}:
+                raise ValueError("unsupported conflict policy")
+            result.extend(["--conflict-policy", conflict_policy])
+        return result
 
     @staticmethod
     def privileged(operation: str, *arguments: str) -> list[str]:
         allowed = {"refresh", "clean", "optimize", "rollback", "switch"}
         if operation not in allowed:
             raise ValueError("unsupported privileged operation")
-        pkexec = shutil.which("pkexec")
+        pkexec = resolve_pkexec()
         helper = os.environ.get("NIX_SETTINGS_HELPER") or shutil.which("nix-settings-helper")
         if pkexec is None:
             raise ProcessError("pkexec is unavailable; install and enable Polkit")

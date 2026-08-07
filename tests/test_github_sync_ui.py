@@ -86,3 +86,13 @@ def test_nix_package_runtime_contains_github_cli() -> None:
     package = (ROOT / "nix/package.nix").read_text(encoding="utf-8")
     assert "  gh," in package
     assert "    gh\n    git\n" in package
+
+
+
+def test_sync_conflict_dialog_exposes_explicit_local_and_repository_choices() -> None:
+    source = (ROOT / "src/nix_settings/gui/pages/sync.py").read_text(encoding="utf-8")
+    assert "def _choose_conflict_policy" in source
+    assert 'dialog.add_button("Use local", 101)' in source
+    assert 'dialog.add_button("Use repository", 102)' in source
+    assert "Conflict choice: use local versions" in source
+    assert "Conflict choice: use repository versions" in source

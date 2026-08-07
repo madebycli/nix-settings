@@ -352,7 +352,21 @@ class SyncPage:
         if mutating and not self._confirm_action(command):
             return
         scope = self.scope.get_active_id() or "all"
-        argv = BackendCommands.sync_action(command, scope)
+        conflict_policy: str | None = None
+        if (
+            status is not None
+            and status.conflicts
+            and scope != "nixos"
+            and command in {"push", "pull", "sync"}
+        ):
+            conflict_policy = self._choose_conflict_policy(command, status.conflicts)
+            if conflict_policy is None:
+                return
+        argv = BackendCommands.sync_action(
+            command,
+            scope,
+            conflict_policy=conflict_policy,
+        )
         if mutating:
             argv.append("--yes")
         if command in {"pull", "sync"}:
@@ -367,6 +381,54 @@ class SyncPage:
         self.log.append(f"Starting config-sync {command} ({scope})")
         self.operation = StreamingProcess(argv, self._operation_event, self._operation_done)
         self.operation.start()
+
+
+    def _choose_conflict_policy(self, command: str, conflicts: tuple[str, ...]) -> str | None:
+        visible = list(conflicts[:8])
+        details = "\n".join(f"• {path}" for path in visible)
+        if len(conflicts) > len(visible):
+            details += f"\n• … and {len(conflicts) - len(visible)} more"
+
+        dialog = self.Gtk.MessageDialog(
+            transient_for=self.parent_window,
+            modal=True,
+            message_type=self.Gtk.MessageType.WARNING,
+            buttons=self.Gtk.ButtonsType.NONE,
+            text=f"{len(conflicts)} dotfile conflict(s) need an explicit choice",
+        )
+        dialog.add_button("Cancel", self.Gtk.ResponseType.CANCEL)
+        if command in {"push", "sync"}:
+            dialog.add_button("Use local", 101)
+        if command in {"pull", "sync"}:
+            dialog.add_button("Use repository", 102)
+
+        if command == "push":
+            explanation = (
+                "Upload will copy the local HOME versions into the repository and continue. "
+                "Git history keeps the previous repository versions."
+            )
+        elif command == "pull":
+            explanation = (
+                "Download will replace these local HOME versions from the repository and create "
+                "timestamped local backups first."
+            )
+        else:
+            explanation = (
+                "Choose which side wins only for the listed conflicts. Other local/remote changes "
+                "continue through the normal three-way sync rules. Repository-to-HOME replacements "
+                "are backed up first."
+            )
+        dialog.format_secondary_text(f"{explanation}\n\n{details}")
+        prepare_layer_dialog(dialog)
+        response = dialog.run()
+        dialog.destroy()
+        if response == 101:
+            self.log.append("Conflict choice: use local versions")
+            return "local"
+        if response == 102:
+            self.log.append("Conflict choice: use repository versions")
+            return "repository"
+        return None
 
     def _confirm_action(self, command: str) -> bool:
         labels = {
