@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 from typing import Any
 
-from nix_settings.backend.models import SystemStatus, UPDATE_MODES, UpdatePreview
+from nix_settings.backend.models import UPDATE_MODES, SystemStatus, UpdatePreview
 from nix_settings.backend.process import (
     BackendCommands,
     JsonRunner,

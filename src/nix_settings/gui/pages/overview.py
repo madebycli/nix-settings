@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from nix_settings.backend.models import format_bytes, SystemStatus
+from nix_settings.backend.models import SystemStatus, format_bytes
 from nix_settings.backend.process import BackendCommands, JsonRunner
 from nix_settings.backend.requests import RequestGate
 from nix_settings.gui.widgets.common import card, page_scroller, stat_row, styled_label
