@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 from unittest import mock
 
@@ -7,6 +8,7 @@ import pytest
 
 from nix_settings.__main__ import main
 from nix_settings.backend.github_auth import AuthStatus, GitHubCliAuth
+from nix_settings.gui.widgets.log_view import LogView
 from nix_settings.terminal import find_login_terminal
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,14 +54,42 @@ def test_login_dialog_keeps_backup_terminal_fallback_and_opaque_surface() -> Non
 
 def test_log_view_uses_native_wayland_clipboard_and_selection_copy() -> None:
     source = (ROOT / "src/nix_settings/gui/widgets/log_view.py").read_text(encoding="utf-8")
+    package = (ROOT / "nix/package.nix").read_text(encoding="utf-8")
     assert "set_cursor_visible(True)" in source
     assert 'connect("key-press-event", self._key_press)' in source
-    assert "Clipboard.get_default" in source
+    assert 'shutil.which("wl-copy")' in source
+    assert '[executable, "--type", "text/plain;charset=utf-8"]' in source
     assert "get_has_selection()" in source
-    assert "copy_clipboard(clipboard)" in source
     assert "SELECTION_CLIPBOARD" in source
-    assert 'set_label("Copied")' in source
+    assert 'set_label("Copied" if wayland_ok else "Copied (GTK)")' in source
     assert "clipboard.store()" in source
+    assert "  wl-clipboard," in package
+    assert "    wl-clipboard\n" in package
+
+
+def test_wayland_copy_passes_text_to_fixed_wl_copy_argv() -> None:
+    completed = subprocess.CompletedProcess(args=[], returncode=0)
+    with (
+        mock.patch(
+            "nix_settings.gui.widgets.log_view.shutil.which",
+            return_value="/nix/store/test/bin/wl-copy",
+        ),
+        mock.patch(
+            "nix_settings.gui.widgets.log_view.subprocess.run",
+            return_value=completed,
+        ) as run,
+    ):
+        assert LogView._copy_wayland("copy me")
+
+    run.assert_called_once_with(
+        ["/nix/store/test/bin/wl-copy", "--type", "text/plain;charset=utf-8"],
+        input="copy me",
+        text=True,
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        timeout=5,
+    )
 
 
 def test_main_shell_is_opaque_and_reuses_compact_title_bar_geometry() -> None:
