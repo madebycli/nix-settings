@@ -1,0 +1,66 @@
+name: Apply live feedback fixes v2
+
+on:
+  push:
+    branches: [feat/github-cli-sync-ui]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: feat/github-cli-sync-ui
+          fetch-depth: 0
+      - name: Reuse guarded patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          source = Path('.github/workflows/apply-live-feedback.yml').read_text(encoding='utf-8')
+          start = "          python3 - <<'PY'\n"
+          end = "\n          PY\n"
+          block = source.split(start, 1)[1].split(end, 1)[0]
+          lines = [line[10:] if line.startswith('          ') else line for line in block.splitlines()]
+          Path('/tmp/apply-live-ui.py').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          PY
+          python3 /tmp/apply-live-ui.py
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # Cache parsing is deliberately fail-soft, but only the contract parser can fail here.
+          for filename in (
+              'src/nix_settings/gui/pages/overview.py',
+              'src/nix_settings/gui/pages/storage.py',
+              'src/nix_settings/gui/pages/system.py',
+              'src/nix_settings/gui/pages/generations.py',
+              'src/nix_settings/gui/pages/sync.py',
+          ):
+              path = Path(filename)
+              text = path.read_text(encoding='utf-8').replace('except Exception:\n', 'except ValueError:\n')
+              path.write_text(text, encoding='utf-8')
+
+          cache = Path('src/nix_settings/backend/cache.py')
+          cache.write_text('''from __future__ import annotations\n\nimport json\nimport os\nimport re\nfrom collections.abc import Mapping\nfrom pathlib import Path\nfrom typing import Any\n\n_KEY_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,80}$")\n\n\nclass JsonCache:\n    """Small fail-soft cache for non-secret structured UI snapshots."""\n\n    def __init__(self, root: Path | None = None) -> None:\n        if root is None:\n            base = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))\n            root = base / "nix-settings"\n        self.root = root\n\n    def _path(self, key: str) -> Path:\n        if not _KEY_RE.fullmatch(key):\n            raise ValueError("invalid cache key")\n        return self.root / f"{key}.json"\n\n    def load(self, key: str) -> Mapping[str, Any] | None:\n        path = self._path(key)\n        try:\n            value = json.loads(path.read_text(encoding="utf-8"))\n        except (OSError, json.JSONDecodeError):\n            return None\n        if not isinstance(value, dict) or value.get("cacheVersion") != 1:\n            return None\n        payload = value.get("payload")\n        return payload if isinstance(payload, dict) else None\n\n    def save(self, key: str, payload: object) -> None:\n        if not isinstance(payload, Mapping):\n            return\n        path = self._path(key)\n        temporary: Path | None = None\n        try:\n            self.root.mkdir(parents=True, exist_ok=True, mode=0o700)\n            temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")\n            temporary.write_text(\n                json.dumps({"cacheVersion": 1, "payload": dict(payload)}, sort_keys=True) + "\\n",\n                encoding="utf-8",\n            )\n            temporary.chmod(0o600)\n            os.replace(temporary, path)\n        except OSError:\n            if temporary is not None:\n                try:\n                    temporary.unlink(missing_ok=True)\n                except OSError:\n                    pass\n''', encoding='utf-8')
+          PY
+      - name: Compile patched UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m compileall -q src tests
+      - name: Commit fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src tests
+          git commit -m 'fix(ui): cache snapshots and repair layer-shell sync flow'
+          git push origin HEAD:feat/github-cli-sync-ui
