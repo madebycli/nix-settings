@@ -7,11 +7,12 @@ from nix_settings.backend.process import redact_line
 
 
 class LogView:
-    def __init__(self, Gtk: Any, *, max_lines: int = 2000) -> None:
-        from gi.repository import Gdk
+    def __init__(self, Gtk: Any, *, max_lines: int = 2000, min_height: int = 180) -> None:
+        from gi.repository import Gdk, GLib
 
         self.Gtk = Gtk
         self.Gdk = Gdk
+        self.GLib = GLib
         self.max_lines = max_lines
         self._lines: deque[str] = deque(maxlen=max_lines)
         self.widget = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -19,22 +20,20 @@ class LogView:
         title = Gtk.Label(label="LOG", xalign=0)
         title.get_style_context().add_class("section-title")
         toolbar.pack_start(title, True, True, 0)
-        copy = Gtk.Button(label="Copy")
-        copy.set_size_request(72, 28)
-        copy.get_style_context().add_class("flat-action")
-        copy.connect("clicked", self._copy)
+        self.copy_button = Gtk.Button(label="Copy")
+        self.copy_button.set_size_request(72, 28)
+        self.copy_button.get_style_context().add_class("flat-action")
+        self.copy_button.connect("clicked", self._copy)
         clear = Gtk.Button(label="Clear")
         clear.set_size_request(72, 28)
         clear.get_style_context().add_class("flat-action")
         clear.connect("clicked", self._clear_clicked)
-        toolbar.pack_start(copy, False, False, 0)
+        toolbar.pack_start(self.copy_button, False, False, 0)
         toolbar.pack_start(clear, False, False, 0)
         self.widget.pack_start(toolbar, False, False, 0)
 
         self.view = Gtk.TextView()
         self.view.set_editable(False)
-        # A read-only TextView can still behave like normal selectable text.
-        # Keep the caret/focus enabled so mouse selection and Ctrl+C work.
         self.view.set_cursor_visible(True)
         self.view.set_can_focus(True)
         self.view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
@@ -44,7 +43,7 @@ class LogView:
         self.error_tag = self.buffer.create_tag("error", weight=700)
         self.scroll = Gtk.ScrolledWindow()
         self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        self.scroll.set_min_content_height(180)
+        self.scroll.set_min_content_height(min_height)
         self.scroll.get_style_context().add_class("log-scroll")
         self.scroll.add(self.view)
         self.widget.pack_start(self.scroll, True, True, 0)
@@ -76,24 +75,34 @@ class LogView:
     def _clear_clicked(self, _button: Any) -> None:
         self.clear()
 
-    def _selection_text(self) -> str | None:
-        start = self.buffer.get_iter_at_mark(self.buffer.get_insert())
-        end = self.buffer.get_iter_at_mark(self.buffer.get_selection_bound())
-        if start.compare(end) == 0:
-            return None
-        if start.compare(end) > 0:
-            start, end = end, start
-        return str(self.buffer.get_text(start, end, True))
+    def _clipboard(self) -> Any:
+        clipboard = self.Gtk.Clipboard.get_default(self.view.get_display())
+        if clipboard is None:
+            clipboard = self.Gtk.Clipboard.get(self.Gdk.SELECTION_CLIPBOARD)
+        return clipboard
+
+    def _buffer_text(self) -> str:
+        start, end = self.buffer.get_bounds()
+        return str(self.buffer.get_text(start, end, True)).rstrip("\n")
 
     def _copy(self, _button: Any = None) -> None:
-        text = self._selection_text()
-        if text is None:
-            text = "\n".join(self._lines)
-        if not text:
-            return
-        clipboard = self.Gtk.Clipboard.get(self.Gdk.SELECTION_CLIPBOARD)
-        clipboard.set_text(text, -1)
+        clipboard = self._clipboard()
+        if self.buffer.get_has_selection():
+            self.buffer.copy_clipboard(clipboard)
+        else:
+            text = self._buffer_text()
+            if not text:
+                return
+            clipboard.set_text(text, -1)
+        # Keep the application as the clipboard owner under Wayland and also
+        # request persistence where a clipboard manager is available.
         clipboard.store()
+        self.copy_button.set_label("Copied")
+        self.GLib.timeout_add(900, self._reset_copy_label)
+
+    def _reset_copy_label(self) -> bool:
+        self.copy_button.set_label("Copy")
+        return False
 
     def _key_press(self, _view: Any, event: Any) -> bool:
         control = bool(event.state & self.Gdk.ModifierType.CONTROL_MASK)
