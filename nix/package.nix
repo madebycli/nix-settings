@@ -19,15 +19,15 @@
 }:
 
 let
-  versionLines = lib.splitString "\n" (builtins.readFile ../pyproject.toml);
+  versionLines = lib.splitString "\n" (builtins.readFile ../src/nix_settings/version.py);
   versionLine = lib.findFirst (
-    line: builtins.match "version = \"([^\"]+)\"" line != null
+    line: builtins.match "__version__ = \"([^\"]+)\"" line != null
   ) null versionLines;
   versionMatch =
     if versionLine == null then
-      throw "Unable to read Nix Settings version from pyproject.toml"
+      throw "Unable to read Nix Settings version from src/nix_settings/version.py"
     else
-      builtins.match "version = \"([^\"]+)\"" versionLine;
+      builtins.match "__version__ = \"([^\"]+)\"" versionLine;
   packageVersion = builtins.elemAt versionMatch 0;
   python = python3.withPackages (
     pythonPackages: with pythonPackages; [

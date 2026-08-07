@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nix-settings"
-version = "0.2.7"
+dynamic = ["version"]
 description = "A GTK3 layer-shell sound center for NixOS"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -24,6 +24,9 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 nix_settings = ["gui/style.css"]
+
+[tool.setuptools.dynamic]
+version = { attr = "nix_settings.version.__version__" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

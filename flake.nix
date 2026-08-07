@@ -3,13 +3,18 @@
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-  outputs = { self, nixpkgs }:
+  outputs =
+    { self, nixpkgs }:
     let
-      systems = [ "x86_64-linux" "aarch64-linux" ];
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
     in
     {
-      packages = forAllSystems (system:
+      packages = forAllSystems (
+        system:
         let
           pkgs = import nixpkgs {
             inherit system;
@@ -19,7 +24,8 @@
         {
           inherit (pkgs) nix-settings;
           default = pkgs.nix-settings;
-        });
+        }
+      );
 
       apps = forAllSystems (system: rec {
         nix-settings = {
@@ -29,11 +35,19 @@
         default = nix-settings;
       });
 
-      checks = forAllSystems (system:
+      checks = forAllSystems (
+        system:
         let
           pkgs = import nixpkgs { inherit system; };
           source = nixpkgs.lib.cleanSource ./.;
-          python = pkgs.python312.withPackages (ps: with ps; [ pytest mypy pygobject3 pycairo ]);
+          python = pkgs.python3.withPackages (
+            ps: with ps; [
+              pytest
+              mypy
+              pygobject3
+              pycairo
+            ]
+          );
           package = self.packages.${system}.nix-settings;
           closure = pkgs.closureInfo { rootPaths = [ package ]; };
         in
@@ -41,7 +55,10 @@
           inherit package;
 
           python-tests = pkgs.runCommand "nix-settings-python-tests" {
-            nativeBuildInputs = [ python pkgs.ruff ];
+            nativeBuildInputs = [
+              python
+              pkgs.ruff
+            ];
           } ''
             cp -r ${source} source
             chmod -R u+w source
@@ -62,7 +79,7 @@
             mkdir -p "$HOME" "$XDG_RUNTIME_DIR"
             chmod 700 "$XDG_RUNTIME_DIR"
             nix-settings --help | grep -q doctor
-            nix-settings --version | grep -q 'nix-settings 0.2.7'
+            nix-settings --version | grep -qx "nix-settings ${package.version}"
             set +e
             nix-settings doctor > doctor.txt
             result=$?
@@ -70,6 +87,15 @@
             test "$result" -ne 0
             grep -q 'GTK 3' doctor.txt
             grep -q 'GTK Layer Shell' doctor.txt
+            touch "$out"
+          '';
+
+          version-source-contract = pkgs.runCommand "nix-settings-version-source-contract" { } ''
+            grep -Fq 'dynamic = ["version"]' ${source}/pyproject.toml
+            grep -Fq 'version = { attr = "nix_settings.version.__version__" }' \
+              ${source}/pyproject.toml
+            grep -Fq 'builtins.readFile ../src/nix_settings/version.py' \
+              ${source}/nix/package.nix
             touch "$out"
           '';
 
@@ -86,12 +112,21 @@
             fi
             touch "$out"
           '';
-        });
+        }
+      );
 
-      devShells = forAllSystems (system:
+      devShells = forAllSystems (
+        system:
         let
           pkgs = import nixpkgs { inherit system; };
-          python = pkgs.python312.withPackages (ps: with ps; [ pytest mypy pygobject3 pycairo ]);
+          python = pkgs.python3.withPackages (
+            ps: with ps; [
+              pytest
+              mypy
+              pygobject3
+              pycairo
+            ]
+          );
           typelibPath = pkgs.lib.makeSearchPath "lib/girepository-1.0" [
             pkgs.gobject-introspection
             pkgs.glib
@@ -123,25 +158,34 @@
               echo "Nix Settings GTK3 layer-shell development shell"
             '';
           };
-        });
+        }
+      );
 
       overlays.default = final: _prev: {
         nix-settings = final.callPackage ./nix/package.nix { };
       };
 
       nixosModules = {
-        nix-settings = args@{ pkgs, ... }:
-          import ./nix/module.nix (args // {
-            defaultPackage = self.packages.${pkgs.system}.nix-settings;
-          });
+        nix-settings =
+          args@{ pkgs, ... }:
+          import ./nix/module.nix (
+            args
+            // {
+              defaultPackage = self.packages.${pkgs.system}.nix-settings;
+            }
+          );
         default = self.nixosModules.nix-settings;
       };
 
       homeManagerModules = {
-        nix-settings = args@{ pkgs, ... }:
-          import ./nix/home-manager-module.nix (args // {
-            defaultPackage = self.packages.${pkgs.system}.nix-settings;
-          });
+        nix-settings =
+          args@{ pkgs, ... }:
+          import ./nix/home-manager-module.nix (
+            args
+            // {
+              defaultPackage = self.packages.${pkgs.system}.nix-settings;
+            }
+          );
         default = self.homeManagerModules.nix-settings;
       };
     };

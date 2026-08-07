@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import re
 
 import pytest
 
@@ -10,7 +11,7 @@ from nix_settings.doctor import Check, run_doctor
 
 
 def test_version_is_exposed() -> None:
-    assert __version__ == "0.2.7"
+    assert re.fullmatch(r"\d+\.\d+\.\d+", __version__)
 
 
 def test_help_contains_commands() -> None:
@@ -23,7 +24,7 @@ def test_version_command(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as exc:
         main(["--version"])
     assert exc.value.code == 0
-    assert "nix-settings 0.2.7" in capsys.readouterr().out
+    assert f"nix-settings {__version__}" in capsys.readouterr().out
 
 
 def test_doctor_reports_failures(monkeypatch: pytest.MonkeyPatch) -> None:
