@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from nix_settings.backend.cache import JsonCache
 from nix_settings.backend.models import GenerationStatus, format_bytes
 from nix_settings.backend.process import BackendCommands, JsonRunner, StreamingProcess
 from nix_settings.backend.requests import RequestGate
+from nix_settings.gui.modal import prepare_layer_dialog
 from nix_settings.gui.widgets.common import action_button, card, page_scroller, styled_label
 from nix_settings.gui.widgets.log_view import LogView
 
@@ -15,6 +17,7 @@ class GenerationsPage:
         self.GLib = GLib
         self.parent_window = parent_window
         self.runner = JsonRunner(timeout=120.0)
+        self.cache = JsonCache()
         self.gate: RequestGate[GenerationStatus] = RequestGate()
         self.operation: StreamingProcess | None = None
         self._started = False
@@ -79,15 +82,24 @@ class GenerationsPage:
         if self._started:
             return
         self._started = True
+        cached = self.cache.load("generations")
+        if cached is not None:
+            try:
+                self._apply(GenerationStatus.from_json(cached), None)
+            except ValueError:
+                pass
         self.refresh()
+
+    def _load_generations(self) -> GenerationStatus:
+        payload = self.runner.run(BackendCommands.generations()).json()
+        self.cache.save("generations", payload)
+        return GenerationStatus.from_json(payload)
 
     def refresh(self) -> None:
         generation = self.gate.begin()
         self.gate.run(
             generation,
-            lambda: GenerationStatus.from_json(
-                self.runner.run(BackendCommands.generations()).json()
-            ),
+            self._load_generations,
             self._finished,
         )
 
@@ -158,6 +170,7 @@ class GenerationsPage:
             "The desktop Polkit agent will authenticate the restricted rollback helper."
         )
         dialog.add_button("Rollback", self.Gtk.ResponseType.OK)
+        prepare_layer_dialog(dialog)
         response = dialog.run()
         dialog.destroy()
         if response != self.Gtk.ResponseType.OK:

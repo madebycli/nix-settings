@@ -3,6 +3,7 @@ from __future__ import annotations
 import difflib
 from typing import Any
 
+from nix_settings.backend.cache import JsonCache
 from nix_settings.backend.models import GitHubSyncStatus, SyncStatus
 from nix_settings.backend.paths import (
     PathValidationError,
@@ -14,6 +15,7 @@ from nix_settings.backend.paths import (
 from nix_settings.backend.process import BackendCommands, JsonRunner, StreamingProcess, config_repo
 from nix_settings.backend.requests import RequestGate
 from nix_settings.gui.github_login import run_login
+from nix_settings.gui.modal import prepare_layer_dialog
 from nix_settings.gui.widgets.common import (
     action_button,
     card,
@@ -42,6 +44,7 @@ class SyncPage:
         self.GLib = GLib
         self.parent_window = parent_window
         self.runner = JsonRunner(timeout=180.0)
+        self.cache = JsonCache()
         self.gate: RequestGate[SyncStatus] = RequestGate()
         self.operation: StreamingProcess | None = None
         self.current_status: SyncStatus | None = None
@@ -248,29 +251,43 @@ class SyncPage:
         if self.busy:
             return
         scope = self.scope.get_active_id() or "all"
+        cached = self.cache.load(f"sync-status-{scope}")
+        if cached is not None:
+            try:
+                cached_status = SyncStatus.from_json(cached)
+            except ValueError:
+                pass
+            else:
+                self._render_status(cached_status, cached=True)
         generation = self.gate.begin()
-        self.values["plan"].set_text("Loading…")
-        self.github_badge.set_text("CHECKING")
-        self.gate.run(
-            generation,
-            lambda: SyncStatus.from_json(
-                self.runner.run(BackendCommands.sync_status(scope)).json()
-            ),
-            self._status_finished,
-        )
+        self.operation_status.set_text("Refreshing status…")
+        self.gate.run(generation, lambda: self._load_status(scope), self._status_finished)
+
+    def _load_status(self, scope: str) -> SyncStatus:
+        payload = self.runner.run(BackendCommands.sync_status(scope)).json()
+        self.cache.save(f"sync-status-{scope}", payload)
+        return SyncStatus.from_json(payload)
 
     def _status_finished(self, value: SyncStatus | None, error: Exception | None) -> None:
         self.GLib.idle_add(self._apply_status, value, error)
 
     def _apply_status(self, value: SyncStatus | None, error: Exception | None) -> bool:
         if error is not None or value is None:
-            self.current_status = None
-            self.values["plan"].set_text("Failed")
-            self.github_badge.set_text("ERROR")
+            if self.current_status is None:
+                self.values["plan"].set_text("Failed")
+                self.github_badge.set_text("ERROR")
+            self.operation_status.set_text(
+                "Status refresh failed · cached data kept"
+                if self.current_status is not None
+                else "Status refresh failed"
+            )
             self.log.append(str(error or "Unknown config-sync status error"), error=True)
             self._set_actions_sensitive(True)
             return False
+        self._render_status(value, cached=False)
+        return False
 
+    def _render_status(self, value: SyncStatus, *, cached: bool) -> None:
         self.current_status = value
         self.values["repo"].set_text(value.repository_path)
         self.values["branch"].set_text(value.branch)
@@ -310,8 +327,8 @@ class SyncPage:
         self.sync_summary.set_text(counts)
         for item in value.errors:
             self.log.append(item, error=True)
+        self.operation_status.set_text("Cached snapshot · refreshing…" if cached else "Ready")
         self._set_actions_sensitive(True)
-        return False
 
     def _login_clicked(self, _button: Any) -> None:
         if self.busy:
@@ -370,6 +387,7 @@ class SyncPage:
             "Secret checks, three-way conflict detection, backups and fast-forward-only history remain active."
         )
         dialog.add_button("Continue", self.Gtk.ResponseType.OK)
+        prepare_layer_dialog(dialog)
         response = dialog.run()
         dialog.destroy()
         return bool(response == self.Gtk.ResponseType.OK)
@@ -501,6 +519,7 @@ class SyncPage:
         area.set_margin_end(12)
         area.pack_start(scroll, True, True, 0)
         dialog.show_all()
+        prepare_layer_dialog(dialog)
         response = dialog.run()
         dialog.destroy()
         return bool(response == self.Gtk.ResponseType.OK)

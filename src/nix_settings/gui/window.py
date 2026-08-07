@@ -143,8 +143,10 @@ class SettingsWindow:
 
     def _header(self) -> Any:
         header = self.Gtk.Grid()
+        header.get_style_context().add_class("main-header")
         header.set_column_spacing(10)
         header.set_hexpand(True)
+        header.set_vexpand(False)
         header.set_size_request(-1, HEADER_HEIGHT)
         header.set_margin_start(12)
         header.set_margin_end(12)
@@ -174,6 +176,7 @@ class SettingsWindow:
 
         self.home_button = self.Gtk.Button(label="⌂")
         self.home_button.set_size_request(32, 30)
+        self.home_button.set_valign(self.Gtk.Align.CENTER)
         self.home_button.set_tooltip_text("Overview")
         self.home_button.get_style_context().add_class("flat-action")
         self.home_button.connect("clicked", lambda *_: self.show_page("overview"))
@@ -192,6 +195,7 @@ class SettingsWindow:
         self.refresh_button = self.Gtk.Button(label="Refresh")
         self.refresh_button.set_size_request(88, 30)
         self.refresh_button.set_halign(self.Gtk.Align.END)
+        self.refresh_button.set_valign(self.Gtk.Align.CENTER)
         self.refresh_button.get_style_context().add_class("flat-action")
         self.refresh_button.connect("clicked", self._refresh_current)
         header.attach(self.refresh_button, 4, 0, 1, 1)

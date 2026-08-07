@@ -205,13 +205,7 @@ class BackendCommands:
 
     @staticmethod
     def sync_status(scope: str, *, offline: bool = False) -> list[str]:
-        repo = config_repo()
-        if repo is None:
-            raise ProcessError("Nix configuration repository was not found")
-        adapter = repo / "scripts/config-sync-json.py"
-        if not adapter.is_file():
-            raise ProcessError(f"structured config-sync adapter is missing: {adapter}")
-        result = [sys.executable, str(adapter), "status", "--scope", scope]
+        result = ["config-sync", "status", "--json", "--scope", scope]
         if offline:
             result.append("--offline")
         return result

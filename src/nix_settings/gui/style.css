@@ -31,19 +31,19 @@ button,
 
 .picker-title {
   color: @theme_fg_color;
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 700;
 }
 
 .section-title {
   color: alpha(@theme_fg_color, 0.48);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .stream-title {
   color: alpha(@theme_fg_color, 0.90);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -52,18 +52,18 @@ button,
 .state-detail,
 .control-label {
   color: alpha(@theme_fg_color, 0.56);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .state-title {
   color: alpha(@theme_fg_color, 0.90);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
 }
 
 .volume-value {
   color: alpha(@theme_fg_color, 0.78);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .content {
@@ -117,7 +117,7 @@ button,
 .x-btn-label {
   color: @theme_fg_color;
   font-family: monospace;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   padding: 0;
   margin: 0;
@@ -129,7 +129,7 @@ button,
   border-radius: 8px;
   min-height: 30px;
   padding: 3px 14px;
-  font-size: 12px;
+  font-size: 13px;
   font-family: monospace;
   box-shadow: none;
 }
@@ -185,7 +185,7 @@ spinbutton {
   border-radius: 6px;
   min-height: 32px;
   padding: 0 10px;
-  font-size: 12px;
+  font-size: 13px;
   font-family: monospace;
   box-shadow: none;
 }
@@ -273,25 +273,25 @@ scrollbar slider:hover {
 
 .card-title {
   color: alpha(@theme_fg_color, 0.90);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
 }
 
 .card-detail,
 .stat-key {
   color: alpha(@theme_fg_color, 0.58);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .stat-value {
   color: alpha(@theme_fg_color, 0.88);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .status-text {
   color: alpha(@theme_fg_color, 0.78);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -313,7 +313,7 @@ scrollbar slider:hover {
   min-height: 22px;
   color: alpha(@theme_fg_color, 0.72);
   font-family: monospace;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .deck-progress trough {
@@ -344,7 +344,7 @@ scrollbar slider:hover {
   background: rgba(14, 14, 14, 0.92);
   color: alpha(@theme_fg_color, 0.74);
   font-family: monospace;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .layout-compact .content {
@@ -353,4 +353,8 @@ scrollbar slider:hover {
 
 .layout-compact .card {
   padding: 8px;
+}
+
+.main-header {
+  min-height: 52px;
 }

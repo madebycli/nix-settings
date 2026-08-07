@@ -11,6 +11,7 @@ from nix_settings.backend.process import (
     config_repo,
 )
 from nix_settings.backend.requests import RequestGate
+from nix_settings.gui.modal import prepare_layer_dialog
 from nix_settings.gui.widgets.common import action_button, card, page_scroller, styled_label
 from nix_settings.gui.widgets.log_view import LogView
 
@@ -221,6 +222,7 @@ class UpdatesPage:
             f"Affected sources: {affected}. The desktop Polkit agent will handle authentication."
         )
         dialog.add_button("Update", self.Gtk.ResponseType.OK)
+        prepare_layer_dialog(dialog)
         response = dialog.run()
         dialog.destroy()
         if response != self.Gtk.ResponseType.OK:
