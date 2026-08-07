@@ -3,7 +3,7 @@
 }
 
 .nix-settings-root {
-  background: rgba(14, 14, 14, 0.97);
+  background: rgb(14, 14, 14);
   color: @theme_fg_color;
   border: 1px solid alpha(@theme_fg_color, 0.12);
   border-radius: 12px;
@@ -70,6 +70,10 @@ button,
   padding: 12px 14px 14px 14px;
 }
 
+.sync-content {
+  padding: 8px 12px 10px 12px;
+}
+
 .card,
 .stream-row {
   background: alpha(@theme_fg_color, 0.03);
@@ -79,6 +83,10 @@ button,
 
 .card {
   padding: 10px;
+}
+
+.sync-content .card {
+  padding: 8px;
 }
 
 .device-card {
@@ -119,6 +127,21 @@ button,
   font-family: monospace;
   font-size: 16px;
   font-weight: 500;
+  padding: 0;
+  margin: 0;
+}
+
+.home-action {
+  padding: 0;
+  min-width: 40px;
+  min-height: 32px;
+}
+
+.home-icon {
+  color: alpha(@theme_fg_color, 0.90);
+  font-family: monospace;
+  font-size: 20px;
+  font-weight: 700;
   padding: 0;
   margin: 0;
 }
@@ -330,6 +353,18 @@ scrollbar slider:hover {
   min-height: 14px;
 }
 
+.sync-content .deck-progress {
+  min-height: 18px;
+}
+
+.sync-content .deck-progress trough {
+  min-height: 14px;
+}
+
+.sync-content .deck-progress progress {
+  min-height: 10px;
+}
+
 .log-scroll,
 .config-editor {
   background: rgba(14, 14, 14, 0.88);
@@ -347,8 +382,18 @@ scrollbar slider:hover {
   font-size: 12px;
 }
 
+.nix-settings-modal,
+.nix-settings-modal-content {
+  background: rgb(14, 14, 14);
+  color: @theme_fg_color;
+}
+
 .layout-compact .content {
   padding: 10px 11px 12px 11px;
+}
+
+.layout-compact .sync-content {
+  padding: 7px 9px 8px 9px;
 }
 
 .layout-compact .card {
@@ -356,5 +401,6 @@ scrollbar slider:hover {
 }
 
 .main-header {
-  min-height: 52px;
+  min-height: 32px;
+  background: rgb(14, 14, 14);
 }
