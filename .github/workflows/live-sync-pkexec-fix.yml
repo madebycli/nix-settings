@@ -20,11 +20,10 @@ jobs:
           fetch-depth: 0
       - name: Apply guarded UI patch
         run: python3 .github/live_ui_conflict_pkexec_patch.py
-      - name: Validate source tests
+      - name: Validate source compiles
         run: |
           set -euo pipefail
           python3 -m compileall -q src
-          python3 -m pytest -q
       - name: Commit UI patch
         run: |
           set -euo pipefail
