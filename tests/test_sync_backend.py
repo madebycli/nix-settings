@@ -35,14 +35,20 @@ def test_sync_conflict_policy_is_passed_as_fixed_argv() -> None:
 def test_privileged_prefers_nixos_pkexec_wrapper() -> None:
     with tempfile.TemporaryDirectory() as directory:
         wrapper = Path(directory) / "pkexec"
-        wrapper.write_text("#!/bin/sh
-exit 0
-", encoding="utf-8")
+        wrapper.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
         wrapper.chmod(0o755)
         with (
             mock.patch.object(process, "SYSTEM_PKEXEC", wrapper),
-            mock.patch.dict(os.environ, {"NIX_SETTINGS_HELPER": "/nix/store/test-helper"}, clear=False),
-            mock.patch.object(process.shutil, "which", return_value="/nix/store/wrong-pkexec"),
+            mock.patch.dict(
+                os.environ,
+                {"NIX_SETTINGS_HELPER": "/nix/store/test-helper"},
+                clear=False,
+            ),
+            mock.patch.object(
+                process.shutil,
+                "which",
+                return_value="/nix/store/wrong-pkexec",
+            ),
         ):
             argv = BackendCommands.privileged("clean", "3")
     assert argv[0] == str(wrapper)
