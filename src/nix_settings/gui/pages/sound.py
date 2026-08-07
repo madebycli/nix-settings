@@ -292,7 +292,9 @@ class SoundPage:
             empty.set_margin_top(16)
             rows.pack_start(empty, False, False, 0)
         else:
-            on_scroll = lambda event: self._scroll_scroller(scroller, event)
+            def on_scroll(event: Any) -> None:
+                self._scroll_scroller(scroller, event)
+
             for stream in streams:
                 row = StreamRow(
                     self.Gtk,
