@@ -12,7 +12,7 @@ from nix_settings.backend.paths import (
     validate_managed_paths,
 )
 from nix_settings.backend.process import BackendCommands, redact_line
-from nix_settings.privileged_helper import HelperError, MODE_INPUTS, dispatch
+from nix_settings.privileged_helper import MODE_INPUTS, HelperError, dispatch
 
 
 def test_log_redaction_and_ansi_removal() -> None:

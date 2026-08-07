@@ -5,7 +5,13 @@ from typing import Any
 
 from nix_settings.backend.models import SystemStatus
 from nix_settings.backend.process import BackendCommands, JsonRunner, StreamingProcess, config_repo
-from nix_settings.gui.widgets.common import action_button, card, page_scroller, stat_row, styled_label
+from nix_settings.gui.widgets.common import (
+    action_button,
+    card,
+    page_scroller,
+    stat_row,
+    styled_label,
+)
 from nix_settings.gui.widgets.log_view import LogView
 
 
