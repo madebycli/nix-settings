@@ -23,7 +23,9 @@ def run_login(parent: Any) -> bool:
     dialog = Gtk.Dialog(title="Sign in to GitHub", transient_for=parent, modal=True)
     dialog.set_decorated(False)
     dialog.get_style_context().add_class("picker-root")
+    dialog.get_style_context().add_class("nix-settings-root")
     dialog.set_app_paintable(True)
+    dialog.set_opacity(1.0)
     dialog.set_size_request(560, 300)
     rgba = dialog.get_screen().get_rgba_visual()
     if rgba is not None:
@@ -40,6 +42,7 @@ def run_login(parent: Any) -> bool:
 
     content = dialog.get_content_area()
     content.get_style_context().add_class("picker-root")
+    content.get_style_context().add_class("nix-settings-root")
     content.set_border_width(18)
     content.set_spacing(12)
 
@@ -86,7 +89,7 @@ def run_login(parent: Any) -> bool:
     fallback_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
     fallback_label = Gtk.Label(label="Browser flow not working?")
     fallback_label.set_xalign(0)
-    fallback_label.get_style_context().add_class("picker-hint")
+    fallback_label.get_style_context().add_class("card-detail")
     fallback_box.pack_start(fallback_label, True, True, 0)
     terminal_button = Gtk.Button(label="Open terminal login")
     terminal_button.get_style_context().add_class("flat-action")
