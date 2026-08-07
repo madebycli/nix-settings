@@ -242,7 +242,7 @@ class SyncPage:
         dialog.add_button("Continue", self.Gtk.ResponseType.OK)
         response = dialog.run()
         dialog.destroy()
-        return response == self.Gtk.ResponseType.OK
+        return bool(response == self.Gtk.ResponseType.OK)
 
     def _set_actions_sensitive(self, enabled: bool) -> None:
         for button in self.action_buttons:
@@ -353,4 +353,4 @@ class SyncPage:
         dialog.show_all()
         response = dialog.run()
         dialog.destroy()
-        return response == self.Gtk.ResponseType.OK
+        return bool(response == self.Gtk.ResponseType.OK)
