@@ -1,0 +1,64 @@
+name: Apply sync UI model patch once
+
+on:
+  push:
+    branches: [feat/github-cli-sync-ui]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/github-cli-sync-ui
+      - name: Apply guarded model and package transforms
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          models = Path("src/nix_settings/backend/models.py")
+          text = models.read_text(encoding="utf-8")
+          marker = "@dataclass(frozen=True)\nclass SyncStatus:\n"
+          addition = '''@dataclass(frozen=True)\nclass GitHubSyncStatus:\n    gh_installed: bool\n    authenticated: bool\n    login: str | None\n    permission: str | None\n    can_push: bool\n    remote_url: str | None\n    remote_ok: bool\n    git_name: str | None\n    git_email: str | None\n    credential_helper_ready: bool\n    error: str | None\n\n    @classmethod\n    def from_json(cls, value: object) -> GitHubSyncStatus:\n        data = _mapping(value, \"github\")\n        return cls(\n            gh_installed=_boolean(data.get(\"ghInstalled\", False), \"github.ghInstalled\"),\n            authenticated=_boolean(data.get(\"authenticated\", False), \"github.authenticated\"),\n            login=_string(data.get(\"login\"), \"github.login\", optional=True),\n            permission=_string(data.get(\"permission\"), \"github.permission\", optional=True),\n            can_push=_boolean(data.get(\"canPush\", False), \"github.canPush\"),\n            remote_url=_string(data.get(\"remoteUrl\"), \"github.remoteUrl\", optional=True),\n            remote_ok=_boolean(data.get(\"remoteOk\", False), \"github.remoteOk\"),\n            git_name=_string(data.get(\"gitName\"), \"github.gitName\", optional=True),\n            git_email=_string(data.get(\"gitEmail\"), \"github.gitEmail\", optional=True),\n            credential_helper_ready=_boolean(\n                data.get(\"credentialHelperReady\", False),\n                \"github.credentialHelperReady\",\n            ),\n            error=_string(data.get(\"error\"), \"github.error\", optional=True),\n        )\n\n\n'''
+          if "class GitHubSyncStatus:" not in text:
+              if text.count(marker) != 1:
+                  raise SystemExit("SyncStatus marker changed")
+              text = text.replace(marker, addition + marker)
+          old = "    backups: tuple[str, ...]\n    errors: tuple[str, ...]\n"
+          new = "    backups: tuple[str, ...]\n    github: GitHubSyncStatus\n    errors: tuple[str, ...]\n"
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif new not in text:
+              raise SystemExit("SyncStatus fields changed")
+          old = '''            backups=tuple(str(item) for item in data.get(\"backups\", [])),\n            errors=_errors(data.get(\"errors\", [])),\n'''
+          new = '''            backups=tuple(str(item) for item in data.get(\"backups\", [])),\n            github=GitHubSyncStatus.from_json(data.get(\"github\", {})),\n            errors=_errors(data.get(\"errors\", [])),\n'''
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif new not in text:
+              raise SystemExit("SyncStatus parser changed")
+          models.write_text(text, encoding="utf-8")
+
+          package = Path("nix/package.nix")
+          text = package.read_text(encoding="utf-8")
+          if "  gh,\n" not in text:
+              text = text.replace("  git,\n  jq,", "  gh,\n  git,\n  jq,", 1)
+          runtime = "    gawk\n    git\n    jq"
+          if runtime in text:
+              text = text.replace(runtime, "    gawk\n    gh\n    git\n    jq", 1)
+          elif "    gh\n    git\n    jq" not in text:
+              raise SystemExit("runtimePath marker changed")
+          package.write_text(text, encoding="utf-8")
+          PY
+      - name: Commit guarded patch
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/nix_settings/backend/models.py nix/package.nix
+          git commit -m "feat(sync): model GitHub readiness and package gh"
+          git push origin HEAD:feat/github-cli-sync-ui
