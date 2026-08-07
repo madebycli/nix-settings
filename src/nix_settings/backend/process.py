@@ -6,7 +6,6 @@ import re
 import shutil
 import signal
 import subprocess
-import sys
 import threading
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
