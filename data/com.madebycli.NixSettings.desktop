@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
-Name=Nix Settings Sound
-Comment=PipeWire sound center for NixOS
+Name=Nix Sound
+Comment=Native Noctalia sound overlay
 Exec=nix-settings sound
 Icon=com.madebycli.NixSettings
 Terminal=false

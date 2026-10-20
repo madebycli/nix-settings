@@ -1,15 +1,9 @@
 # Architecture
 
-Nix Settings keeps presentation and audio control separate.
+`src/audio.rs` normalizes one structured Pulse server graph plus default-device info and constructs validated argv operations. It uses the PipeWire-Pulse compatibility protocol through `pactl`. Unlike the old backend, it does not spawn a volume query per node or use the unsupported `wpctl move` command.
 
-- `audio.models` defines immutable typed data passed to the UI.
-- `audio.pipewire` converts structured `pw-dump` JSON into those models.
-- `audio.commands` is the only raw `wpctl` command-construction layer.
-- `audio.wireplumber` implements the backend interface.
-- `audio.monitor` owns the long-running event subscription and reconnect loop.
-- `gui.pages.sound` receives snapshots and dispatches background operations.
-- worker results cross into GTK through `GLib.idle_add` or bounded timeouts.
+`src/server.rs` owns the snapshot, subscription and private Unix socket. A bounded queue serializes requests with audio events. Refreshes are limited to one per 60 ms during changes. The idle loop blocks; the subscription reconnects with bounded exponential backoff. Commands have three-second deadlines. SIGTERM/INT stop the subscription and remove the socket. Runtime directories must belong to the current UID and be private.
 
-The graphical process uses GTK3 and `GtkLayerShell`. It requires Wayland and deliberately does not fall back to a normal floating window. `nix-settings sound` opens only the sound center, without a settings sidebar or unfinished pages. The stable `Gtk.Application` ID provides single-instance behavior.
+`src/install.rs` embeds and installs the native plugin, preserves unrelated settings and plugin enablement, backs up changed settings, and keeps plugin backups outside Noctalia's scanned directory. Repeat installations do not duplicate enablement or add widgets.
 
-Sound controls are initialized before their signal handlers are connected. PipeWire events are debounced, slider writes are delayed until dragging finishes, and the vertical adjustment is restored after snapshot rendering. These rules prevent duplicate operations and scroll jumps.
+`plugins/nix-sound/service.luau` lazily starts the backend and passes JSON snapshots through Noctalia's shared plugin state. It coalesces pending volume operations. `sound.luau` renders real host controls; stable node keys preserve control and scroll identity. `host.luau` reads effective Noctalia appearance and logical monitor dimensions. Native shell effects are owned by Noctalia, with no independent theme generation.

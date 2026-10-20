@@ -15,6 +15,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  rust-audio:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - name: Install audio test server
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends pulseaudio pulseaudio-utils
+      - name: Rust and real audio checks
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+          rustup component add clippy rustfmt
+          cargo fmt --check
+          cargo clippy --all-targets --locked -- -D warnings
+          cargo test --locked
+          cargo build --locked
+          python3 tools/install_acceptance.py
+          python3 tools/audio_acceptance.py
   package:
     runs-on: ubuntu-latest
     timeout-minutes: 180

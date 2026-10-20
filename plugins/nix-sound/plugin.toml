@@ -1,0 +1,29 @@
+id = "madebycli/nix-sound"
+name = "Nix Sound"
+version = "1.0.0"
+plugin_api = 31
+author = "madebycli"
+license = "MIT"
+description = "System and per-application sound controls in a native adaptive overlay."
+icon = "volume"
+dependencies = ["nix-settings", "pactl"]
+
+[[setting]]
+key = "executable"
+type = "string"
+label_key = "executable"
+default = "nix-settings"
+
+[[service]]
+id = "audio"
+entry = "service.luau"
+
+[[panel]]
+id = "sound"
+entry = "sound.luau"
+width = 1120
+height = 720
+placement = "floating"
+position = "center"
+layer = "overlay"
+keyboard_focus = "on_demand"

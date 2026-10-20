@@ -1,20 +1,16 @@
-# Validation
+# Validation (2026-10-21)
 
-## Automated
+Verified locally in the managed Linux environment:
 
-```bash
-python -m compileall -q src
-pytest -q
-ruff check .
-mypy src
-nix flake check
-```
+- Rust unit tests, rustfmt and Clippy with warnings denied.
+- Real isolated PulseAudio 17: graph parsing, exclusion of monitor sources, master volume/mute/default, real playback and recording stream routing, recording volume, server restart/reconnect, signal shutdown/socket removal.
+- Real installer in temporary XDG directories: preservation of existing config and enabled plugins, original settings backup, repeat installs, no bar widget, help without mutation and malformed-settings preservation.
+- Native Luau callback execution/property checks against unmodified Noctalia 5.3.0 sources (`e37d7145b95a51b801db9bb20d1c600f35111e0b`), including 1366×768, 1280×720, 800×600, 640×360 and 3840×2160 logical outputs, UI scaling, square/round corners and glass/soft cards. Luau scripts compile.
 
-## Live Wayland and PipeWire validation
+The isolated null-device audio run produced its first snapshot in about 25 ms with a debug binary; this is one test observation, not a hardware/startup performance guarantee.
 
-```bash
-nix-settings doctor
-nix-settings sound
-```
+The x86_64 Nix package build, packaged CLI and complete `nix flake check` (including official Noctalia plugin lint) passed locally. Both native plugins also loaded in unmodified Noctalia 5.3.0 under software-rendered Sway. The combined host runner exercised live palette/shape/border/transparency/UI-scale changes, native Sound backend startup and audio control, and native overlays at 800×600 and 1366×768 with 125% UI scaling. Screenshots remain in the execution workspace, outside the source repositories.
 
-Confirm that the window is a GtkLayerShell surface, opens at its final size, and keeps the 2x2 workspace. Recording should contain only real apps. Sliders must remain stable during PipeWire events. Every stream Route selector must keep the same 300 logical-pixel width on normal and 15-inch displays, with a smaller non-overlapping fallback on narrow monitors. Long labels must ellipsize instead of resizing rows. The close control must stay circular and theme colors must be respected.
+An already open panel retains a safe size when a monitor grows; closing and reopening negotiates the larger host surface. Scroll viewports receive exact remaining height through native flex layout, so content stays within the panel.
+
+PipeWire-Pulse on the user's machine, physical device hotplug, a physical 15-inch monitor and GPU-backed MangoWM remain unverified. The Sway/Noctalia tests do not establish target-hardware acceptance. Runtime prerequisites and installation commands are in README.md.

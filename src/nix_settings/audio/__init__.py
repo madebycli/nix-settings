@@ -1,1 +1,0 @@
-"""PipeWire audio integration."""
