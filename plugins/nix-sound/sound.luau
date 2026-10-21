@@ -33,7 +33,7 @@ local function volume(node)
         -- Label width is not a fixed layout constraint in the host. Reserve the entire
         -- percentage column so 9%, 90% and 100% never change the slider's track length.
         ui.row({width=48,justify="end",align="center"},{
-            ui.label({text=tostring(math.floor(node.volume*100+0.5)).."%",textAlign="right",color="primary"}),
+            ui.label({text=tostring(math.floor(node.volume*100+0.5)).."%",textAlign="end",color="primary"}),
         }),
         ui.button({text=tr("mute"),width=80,controlSize="sm",selected=node.muted,
             tooltip=tr(node.muted and "unmute" or "mute"),onClick=function()
@@ -50,7 +50,10 @@ end
 local function master(devices, title, glyph)
     local current=devices[1]
     for _,device in ipairs(devices) do if device.is_default then current=device;break end end
-    local nodes={ui.row({gap=6,align="center"},{ui.glyph({name=glyph,size=22,color="primary"}),ui.label({text=tr(title),fontSize=20,fontWeight="bold",maxLines=1})})}
+    local nodes={ui.row({gap=8,minHeight=28,align="center"},{
+        ui.row({width=24,height=24,justify="center",align="center"},{ui.glyph({name=glyph,size=20,color="primary"})}),
+        ui.label({text=tr(title),fontSize=18,fontWeight="semibold",baseline="textFixedHeight",maxLines=1,flexGrow=1}),
+    })}
     if current then
         table.insert(nodes,ui.row({align="stretch"},{selector(devices,current.id,function(device)send({action="default",kind=device.kind,id=device.id})end)}))
         table.insert(nodes,volume(current))
@@ -66,13 +69,18 @@ end
 local function streams(list, devices, title, compact)
     local nodes={}
     for _,stream in ipairs(list) do
-        local content={ui.row({gap=6,align="center"},{appIcon(stream),
-            ui.label({text=stream.label,maxWidth=compact and 90 or 120,maxLines=1,fontSize=16,fontWeight="medium"}),
+        local identity=ui.row({width=compact and 140 or 172,gap=8,align="center"},{appIcon(stream),
+            ui.label({text=stream.label,maxWidth=compact and 108 or 140,maxLines=1,fontSize=14,
+                fontWeight="medium",baseline="textFixedHeight",flexGrow=1}),
+        })
+        local content={ui.row({gap=8,align="center"},{identity,
             selector(devices,stream.device,function(device)send({action="route",kind=stream.kind,id=stream.id,device=device.id})end)}),volume(stream)}
         table.insert(nodes,ui.column(host.card({key=stream.kind..tostring(stream.id),gap=4,padding=8}),content))
     end
     if #nodes==0 then table.insert(nodes,ui.label({text=tr("no_streams"),color="on_surface_variant",maxLines=2})) end
-    local heading=ui.label({text=tr(title),fontSize=16,fontWeight="medium",color="on_surface_variant"})
+    local heading=ui.row({paddingH=8,minHeight=24,align="center"},{
+        ui.label({text=tr(title),fontSize=16,fontWeight="medium",baseline="textFixedHeight",color="on_surface_variant"}),
+    })
     if compact then
         table.insert(nodes,1,heading)
         return ui.column({align="stretch",gap=6},nodes)
@@ -88,7 +96,7 @@ render=function()
     local error=noctalia.state.get("command-error") or ""
     if error=="" then error=noctalia.state.get("error") or "" end
     local nodes={ui.row({gap=6,align="center"},{
-        ui.label({text=tr("title"),fontSize=20,fontWeight="bold",flexGrow=1}),
+        ui.label({text=tr("title"),fontSize=20,fontWeight="semibold",baseline="textFixedHeight",flexGrow=1}),
         button("","refresh",function()send({action="refresh"})end),
         ui.button({text="",glyph="x",onClick=function()panel.close()end,visible=(host.style()).show_close_buttons,controlSize="sm"}),
     })}

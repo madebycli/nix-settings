@@ -118,7 +118,15 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
                     "pacat",
                     "--playback",
                     "--raw",
-                    "--property=application.name=Music " + str(i),
+                    "--property=application.name="
+                    + [
+                        "Brave",
+                        "vesktop",
+                        "Music",
+                        "Video player",
+                        "Long application name to check truncation",
+                        "Voice chat",
+                    ][i],
                     "--property=application.icon_name=sound-test",
                     "/dev/zero",
                 ],
@@ -134,6 +142,10 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
             ],
             "recording",
         )
+        # Exercise the actual long German headings and an inherited monospace host font.
+        config = root / "config/noctalia/config.toml"
+        config.parent.mkdir(parents=True, exist_ok=True)
+        config.write_text('[shell]\nlang="de"\nfont_family="monospace"\n')
         result = run([binary, "install-plugin"])
         assert result.returncode == 0, result.stderr
         installed = root / "data/noctalia/plugins/nix-sound/plugin.toml"
@@ -182,6 +194,7 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
             move(x, y)
             command("click")
 
+        time.sleep(2)  # Let the stock host's virtual-keyboard layout OSD disappear.
         shot("sound-wide-before")
         # Fixed and filled panels have different native screen origins. Locate the first
         # yellow slider row in the stock default theme rather than guessing its Y offset.
@@ -343,11 +356,19 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
             shot(f"sound-scaled-{width}")
         text = (artifacts / "noctalia.log").read_text()
         assert "Missing volume" not in text
+        assert "language: de" in text, (
+            "The native fixture must actually use German translations"
+        )
+        assert "ui node '" not in text, (
+            "Native controls emitted invalid property/value warnings"
+        )
         (artifacts / "result.json").write_text(
             json.dumps(
                 {
                     "ok": True,
                     "checks": [
+                        "German headings and inherited monospace font render without native UI warnings",
+                        "different app-name lengths retain aligned device selectors",
                         "real master and per-app pointer callbacks change Pulse volumes",
                         "reinstall reloads cached manifest/service in running host without restart",
                         "master and per-app mute/unmute with stable selected buttons",

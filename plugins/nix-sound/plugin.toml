@@ -1,6 +1,6 @@
 id = "madebycli/nix-sound"
 name = "Nix Sound"
-version = "1.0.2"
+version = "1.0.3"
 plugin_api = 31
 author = "madebycli"
 license = "MIT"

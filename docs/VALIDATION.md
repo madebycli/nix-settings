@@ -26,3 +26,7 @@ The upgrade acceptance starts a running host with an old 480×400 manifest, rein
 The user found 1.0.1's full-work-area overlay too large and explicitly chose a smaller overall overlay while retaining current control sizes. The centered surface now prefers 1600 × 900 logical pixels before Noctalia UI scaling, with native clamping on smaller monitors. A fixed percentage column prevents the 9%/90%/100% digit-count transition from changing slider track length.
 
 The real native host test renders each of those three percentages and clicks identical coordinates on master and application tracks. All three initial values map to exactly the same resulting volume per track (76% master, 77% application in the default fixture), verifying stable geometry through real pointer input. Screenshots also cover the capped surface on a 2560×1440 output and clamping on laptop/smaller displays.
+
+## 1.0.3 typography and alignment
+
+The native fixture now explicitly uses shell.lang=de and the host's monospace font, with different-length application names. Screenshots exercise “Systemlautstärke”, “Mikrofon”, section titles and aligned routing selectors at wide/narrow sizes. Header glyphs use fixed square slots and labels use the native textFixedHeight baseline. Native warnings about unsupported UI values fail the host check; the percentage label alignment uses the supported end token. Existing volume, mute, pointer mapping, installer upgrade, monitor sizing and scaling acceptance is retained.
