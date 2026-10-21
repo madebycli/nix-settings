@@ -23,7 +23,7 @@ manifest = tomllib.loads((plugin / "plugin.toml").read_text())
 levels = json.loads((upstream / "docs/plugin-api.json").read_text())
 assert manifest["plugin_api"] <= max(level["level"] for level in levels)
 if args.kind == "sound":
-    assert all(panel["width"] == "fill" and panel["height"] == "fill" for panel in manifest["panel"])
+    assert all(panel["width"] == 1600 and panel["height"] == 900 for panel in manifest["panel"])
 assert all(panel.get("placement") == "floating" for panel in manifest["panel"])
 source = (upstream / "src/ui/ui_tree_reconciler.cpp").read_text()
 props = {name: re.findall(r'"([^"]+)"', body) for name, body in re.findall(r'k(\w+)\s*=\s*\{(.*?)\};', source, re.S)}

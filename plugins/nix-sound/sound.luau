@@ -30,7 +30,11 @@ local function volume(node)
                     send({action="volume",kind=node.kind,id=node.id,volume=value})
                 end
             end}),
-        ui.label({text=tostring(math.floor(node.volume*100+0.5)).."%", width=42, textAlign="right", color="primary"}),
+        -- Label width is not a fixed layout constraint in the host. Reserve the entire
+        -- percentage column so 9%, 90% and 100% never change the slider's track length.
+        ui.row({width=48,justify="end",align="center"},{
+            ui.label({text=tostring(math.floor(node.volume*100+0.5)).."%",textAlign="right",color="primary"}),
+        }),
         ui.button({text=tr("mute"),width=80,controlSize="sm",selected=node.muted,
             tooltip=tr(node.muted and "unmute" or "mute"),onClick=function()
                 send({action="mute",kind=node.kind,id=node.id,muted=not node.muted})
@@ -79,7 +83,7 @@ local function streams(list, devices, title, compact)
 end
 render=function()
     if not opened then return end
-    local width,height=host.dimensions()
+    local width,height=host.dimensions(1600,900)
     local narrow=width<760
     local error=noctalia.state.get("command-error") or ""
     if error=="" then error=noctalia.state.get("error") or "" end
@@ -112,6 +116,6 @@ function onOpen()
 end
 function onClose() opened=false;noctalia.state.set("open",false);panel.setWantsSecondTicks(false) end
 function update()
-    local w,h=host.dimensions()
+    local w,h=host.dimensions(1600,900)
     if tostring(w)..":"..tostring(h)..noctalia.json.encode(host.appearance())~=lastGeometry then render() end
 end

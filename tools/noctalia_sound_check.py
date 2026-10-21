@@ -139,8 +139,8 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
         installed = root / "data/noctalia/plugins/nix-sound/plugin.toml"
         installed.write_text(
             installed.read_text()
-            .replace('width = "fill"', "width = 480")
-            .replace('height = "fill"', "height = 400")
+            .replace("width = 1600", "width = 480")
+            .replace("height = 900", "height = 400")
         )
         launch([shutil.which("noctalia", path=env["PATH"])], "noctalia")
         wait_for(
@@ -171,14 +171,43 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
             assert driver.stdout.readline().startswith("done " + line)
             time.sleep(0.08)
 
+        pointer_dy = 0
+
         def move(x, y):
-            command(f"move {int(x * 2560 / width)} {int(y * 720 / height)}")
+            command(
+                f"move {int(x * 2560 / width)} {int((y + pointer_dy) * 720 / height)}"
+            )
 
         def click(x, y):
             move(x, y)
             command("click")
 
         shot("sound-wide-before")
+        # Fixed and filled panels have different native screen origins. Locate the first
+        # yellow slider row in the stock default theme rather than guessing its Y offset.
+        raw = subprocess.run(
+            ["grim", "-t", "ppm", "-o", "HEADLESS-1", "-"],
+            env=env,
+            capture_output=True,
+            check=True,
+        ).stdout
+        magic, size, maximum, pixels = raw.split(b"\n", 3)
+        assert magic == b"P6" and maximum == b"255"
+        pw, ph = map(int, size.split())
+        rows = []
+        for y in range(ph):
+            count = sum(
+                1
+                for x in range(pw)
+                if pixels[(y * pw + x) * 3] > 210
+                and pixels[(y * pw + x) * 3 + 1] > 210
+                and pixels[(y * pw + x) * 3 + 2] < 190
+            )
+            if count > pw * 0.5:
+                rows.append(y)
+        assert rows, "Native master tracks must be visible"
+        first = [y for y in rows if y < rows[0] + 12]
+        pointer_dy = round(sum(first) / len(first)) - 192
         # Native master sliders lie in the third row of each compact master card.
         click(200, 192)
         wait_for(
@@ -233,6 +262,39 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
         click(750, 321)
         wait_for(lambda: not snapshot()["playback"][0]["muted"], "application unmute")
         shot("sound-wide-after-app")
+        # Identical pointer coordinates must map to the same volume regardless of the
+        # percentage digit count before rendering (the 9/90/100% width regression).
+        geometry = []
+        for group, kind, y in [
+            ("outputs", "sink", 192),
+            ("playback", "sink-input", 321),
+        ]:
+            observed = []
+            node = snapshot()[group][0]
+            for volume in [0.09, 0.90, 1.0]:
+                response = run(
+                    [
+                        binary,
+                        "request",
+                        json.dumps(
+                            {
+                                "action": "volume",
+                                "kind": kind,
+                                "id": node["id"],
+                                "volume": volume,
+                            }
+                        ),
+                    ]
+                )
+                assert response.returncode == 0, response.stderr
+                time.sleep(0.3)
+                shot(f"percent-{kind}-{int(volume * 100)}")
+                click(500, y)
+                time.sleep(0.3)
+                observed.append(snapshot()[group][0]["volume"])
+            assert max(observed) - min(observed) < 0.001, (kind, observed)
+            geometry.append({"kind": kind, "same_click_volumes": observed})
+        (artifacts / "slider-geometry.json").write_text(json.dumps(geometry, indent=2))
         for width, height, name in [
             (2560, 1440, "large"),
             (1366, 768, "laptop"),
@@ -291,8 +353,9 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
                         "master and per-app mute/unmute with stable selected buttons",
                         "master and application drag-release commits change server volumes",
                         "six playback and one recording stream with XDG application icons",
-                        "native fill overlay at 2560x1440, 1600x900, 1366x768, 800x600, 640x360",
+                        "centered capped overlay at 2560x1440, 1600x900, 1366x768, 800x600, 640x360",
                         "long device names, 125% UI scale and live resize without reopening",
+                        "identical pointer mapping with 9%, 90% and 100% labels for master and app sliders",
                     ],
                 },
                 indent=2,
