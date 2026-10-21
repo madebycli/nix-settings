@@ -44,8 +44,11 @@ function M.dimensions(preferredWidth, preferredHeight)
     for _, candidate in ipairs(outputs) do if candidate.name == focused then output = candidate; break end end
     local scale = (M.appearance()).ui_scale
     -- outputs() reports logical output coordinates, already accounting for monitor scaling.
-    local w = output and output.width or preferredWidth
-    local h = output and output.height or preferredHeight
+    local w = output and output.width or preferredWidth or 1120
+    local h = output and output.height or preferredHeight or 720
+    -- Fill panels are laid out by native flex against the actual configured work area.
+    -- Only fixed-size consumers need to retain their negotiated opening extent.
+    if not preferredWidth then return math.max(1,(w-16)/scale-28), math.max(1,(h-16)/scale-28) end
     local panelWidth = math.min(preferredWidth * scale, w - 16)
     local panelHeight = math.min(preferredHeight * scale, h - 16)
     -- Noctalia can retain a smaller configured surface after output enlargement. Keep an

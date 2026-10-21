@@ -36,7 +36,7 @@ Escape and outside click use Noctalia's normal dismissal behavior.
 
 ## Audio engine
 
-One subscription receives audio-server events. A debounced graph refresh uses two structured JSON calls regardless of the number of streams; there is no per-device polling. Slider changes are committed on release. Output/input defaults, mute, volume and routing for both playback and recording use supported Pulse server commands. Server restarts reconnect automatically. Every recording stream remains independently controllable.
+One subscription receives audio-server events. A debounced graph refresh uses two structured JSON calls regardless of the number of streams; there is no per-device polling. Slider changes are committed on release. Installation also reloads the local plugin in a running Noctalia session so updated scripts and panel dimensions take effect. The overlay fills Noctalia’s available monitor work area with its native edge margins; compact application cards retain their logos and switch to one scrollable column on narrow screens. Output/input defaults, mute, volume and routing for both playback and recording use supported Pulse server commands. Server restarts reconnect automatically. Every recording stream remains independently controllable.
 
 The backend starts on first open and remains idle between events. IPC uses a private, bounded Unix-socket protocol with typed requests, command deadlines and single-instance locking. Closing Noctalia stops its child backend and audio subscription.
 

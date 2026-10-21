@@ -22,6 +22,8 @@ upstream = Path(args.noctalia_source)
 manifest = tomllib.loads((plugin / "plugin.toml").read_text())
 levels = json.loads((upstream / "docs/plugin-api.json").read_text())
 assert manifest["plugin_api"] <= max(level["level"] for level in levels)
+if args.kind == "sound":
+    assert all(panel["width"] == "fill" and panel["height"] == "fill" for panel in manifest["panel"])
 assert all(panel.get("placement") == "floating" for panel in manifest["panel"])
 source = (upstream / "src/ui/ui_tree_reconciler.cpp").read_text()
 props = {name: re.findall(r'"([^"]+)"', body) for name, body in re.findall(r'k(\w+)\s*=\s*\{(.*?)\};', source, re.S)}
@@ -52,7 +54,7 @@ local function encode(value)
     local parts={};for _,key in ipairs(keys)do table.insert(parts,tostring(key)..":"..encode(value[key]))end
     return "{"..table.concat(parts,",").."}"
 end
-noctalia={getSetting=function(key)return settings[key]end,
+noctalia={appIconPath=function()return "/tmp/app.svg"end,getSetting=function(key)return settings[key]end,
     outputs=function()return {{name="small",width=currentWidth,height=currentHeight,scale=1,focused=true}}end,
     focusedOutputName=function()return "small"end,getColor=function()return "#abcdef"end,
     tr=function(key)return key end,trp=function(key)return key end,getConfig=function()return "gif-player"end,
@@ -79,6 +81,17 @@ if args.kind == "sound":
     local streams={};for i=1,50 do streams[i]={id=i+10,kind="sink-input",label="Music app "..i,volume=.54,muted=false,device=1}end
     values.snapshot={outputs={output},inputs={input},playback=streams,recording={}}
     onOpen();watchers.snapshot(values.snapshot)
+    local function sliders(node, result)
+        if node.type=="slider" then table.insert(result,node) end
+        for _,child in ipairs(node.children)do sliders(child,result)end
+    end
+    local controls={};sliders(tree,controls)
+    assert(#controls==52,"All master and application sliders must render")
+    for _,control in ipairs(controls)do
+        control.props.onChange("0.27")
+        control.props.onDragEnd() -- The actual native API supplies NO value here.
+        assert(values.command.command.volume==.27,"Slider lost its actual onChange value")
+    end
     local updateView=update
     '''
 else:

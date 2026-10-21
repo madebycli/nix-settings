@@ -114,7 +114,17 @@ fn node(v: &Value, kind: &str, default: &str) -> Option<Node> {
         kind: kind.into(),
         name: name.into(),
         label: label.into(),
-        icon: text(props, "application.icon_name").into(),
+        icon: [
+            "application.icon_name",
+            "application.id",
+            "application.process.binary",
+            "application.name",
+        ]
+        .into_iter()
+        .map(|key| text(props, key))
+        .find(|value| !value.is_empty())
+        .unwrap_or("")
+        .into(),
         volume: volume.clamp(0.0, 1.0),
         muted: v["mute"].as_bool().unwrap_or(false),
         device: v[if kind == "sink-input" {
@@ -244,7 +254,7 @@ mod tests {
     fn fixture() -> Snapshot {
         parse(&json!({"sinks":[{"index":1,"name":"speaker","description":"Headset","volume":{"left":{"value":32768},"right":{"value":32768}},"mute":true}],
             "sources":[{"index":2,"name":"mic","monitor_of_sink":null},{"index":3,"name":"monitor","monitor_of_sink":1}],
-            "sink_inputs":[{"index":8,"sink":1,"properties":{"application.name":"Music"}}],
+            "sink_inputs":[{"index":8,"sink":1,"properties":{"application.name":"Music","application.process.binary":"music-player"}}],
             "source_outputs":[{"index":9,"source":2,"properties":{"application.name":"Chat"}},{"index":10,"source":2,"properties":{"application.name":"Chat"}}]}),
             &json!({"default_sink_name":"speaker","default_source_name":"mic"})).unwrap()
     }
@@ -255,6 +265,7 @@ mod tests {
         assert!(s.outputs[0].muted && s.outputs[0].is_default);
         assert_eq!(s.inputs.len(), 1);
         assert_eq!(s.playback[0].device, Some(1));
+        assert_eq!(s.playback[0].icon, "music-player");
         assert_eq!(s.recording.len(), 2);
     }
     #[test]

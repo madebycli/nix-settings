@@ -1,6 +1,6 @@
 id = "madebycli/nix-sound"
 name = "Nix Sound"
-version = "1.0.0"
+version = "1.0.1"
 plugin_api = 31
 author = "madebycli"
 license = "MIT"
@@ -21,8 +21,8 @@ entry = "service.luau"
 [[panel]]
 id = "sound"
 entry = "sound.luau"
-width = 1120
-height = 720
+width = "fill"
+height = "fill"
 placement = "floating"
 position = "center"
 layer = "overlay"

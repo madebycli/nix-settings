@@ -27,9 +27,10 @@
             nix-settings --help | grep -q doctor
             touch "$out"
           '';
-          plugin = pkgs.runCommand "nix-sound-native-plugin" { nativeBuildInputs = [pkgs.noctalia]; } ''
+          plugin = pkgs.runCommand "nix-sound-native-plugin" { nativeBuildInputs = [pkgs.noctalia pkgs.python3 pkgs.luau]; } ''
             export XDG_CONFIG_HOME="$TMPDIR/config" XDG_DATA_HOME="$TMPDIR/data"
             noctalia plugins lint ${./plugins/nix-sound} > "$out"
+            python3 ${./tools/plugin_contract.py} --plugin ${./plugins/nix-sound} --noctalia-source ${pkgs.noctalia.src}
           '';
       });
       devShells = each (system:

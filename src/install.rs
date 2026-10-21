@@ -142,6 +142,26 @@ pub fn install() -> Result<()> {
         fs::rename(temp, path)?;
     }
     println!("Installed and enabled Nix Sound: {}", destination.display());
+    // The host caches manifest dimensions and service scripts across unchanged config
+    // reloads. Re-enable this plugin through its supported IPC so upgrades take effect.
+    let disabled = Command::new("noctalia")
+        .args(["msg", "plugins", "disable", "madebycli/nix-sound"])
+        .output();
+    if disabled
+        .ok()
+        .is_some_and(|output| output.status.success() && output.stdout.starts_with(b"ok"))
+    {
+        let enabled = Command::new("noctalia")
+            .args(["msg", "plugins", "enable", "madebycli/nix-sound"])
+            .output()
+            .context("Installed Sound, but could not re-enable it in the running host")?;
+        ensure!(
+            enabled.status.success() && enabled.stdout.starts_with(b"ok"),
+            "Installed Sound, but Noctalia could not re-enable it: {}",
+            String::from_utf8_lossy(&enabled.stdout)
+        );
+        println!("Reloaded Nix Sound in the running Noctalia instance.");
+    }
     Ok(())
 }
 pub fn open() -> Result<()> {

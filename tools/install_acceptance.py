@@ -13,7 +13,8 @@ args=p.parse_args()
 binary=str(Path(args.binary).resolve())
 with tempfile.TemporaryDirectory(prefix="nix-sound-install-") as temp:
     root=Path(temp)
-    env=os.environ | {"XDG_CONFIG_HOME":str(root/"config"),"XDG_STATE_HOME":str(root/"state"),"XDG_DATA_HOME":str(root/"data")}
+    (root/"run").mkdir(mode=0o700)
+    env=os.environ | {"XDG_RUNTIME_DIR":str(root/"run"),"XDG_CONFIG_HOME":str(root/"config"),"XDG_STATE_HOME":str(root/"state"),"XDG_DATA_HOME":str(root/"data")}
     config=root/"config/noctalia/config.toml"
     config.parent.mkdir(parents=True)
     config.write_text('[plugins]\nenabled=["other/example"]\n[bar.main]\nend=["music"]\n')
