@@ -30,3 +30,7 @@ The real native host test renders each of those three percentages and clicks ide
 ## 1.0.3 typography and alignment
 
 The native fixture now explicitly uses shell.lang=de and the host's monospace font, with different-length application names. Screenshots exercise “Systemlautstärke”, “Mikrofon”, section titles and aligned routing selectors at wide/narrow sizes. Header glyphs use fixed square slots and labels use the native textFixedHeight baseline. Native warnings about unsupported UI values fail the host check; the percentage label alignment uses the supported end token. Existing volume, mute, pointer mapping, installer upgrade, monitor sizing and scaling acceptance is retained.
+
+## 1.0.4 spacing correction (2026-10-23)
+
+The user's close-up showed accumulated gaps around the section title and first application, plus master/application card edges offset by native list padding. Wide master cards now match the native ScrollView inset, section captions align with inner card content, and duplicate column/heading gaps are removed. The native fixture checks identical pointer mapping on master and app tracks as well as the existing 9%/90%/100% stability checks. At the default fixture both tracks now map the same coordinate to 76%. Scaled captures reopen the panel to apply Noctalia's negotiated 125% content scale before inspecting the matched insets.

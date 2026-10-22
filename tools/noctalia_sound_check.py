@@ -237,15 +237,15 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
             "master drag commits changed value",
         )
         # App sliders follow the section title and the two-row application header.
-        click(240, 321)
+        click(240, 311)
         wait_for(
             lambda: any(n["volume"] < 0.8 for n in snapshot()["playback"]),
             "application pointer changes server volume",
         )
         before = {n["id"]: n["volume"] for n in snapshot()["playback"]}
-        move(240, 321)
+        move(240, 311)
         command("down")
-        move(420, 321)
+        move(420, 311)
         command("up")
         wait_for(
             lambda: any(
@@ -259,7 +259,7 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
             lambda: snapshot()["inputs"][0]["volume"] < 0.8,
             "microphone pointer changes volume",
         )
-        click(1000, 321)
+        click(1000, 311)
         wait_for(
             lambda: snapshot()["recording"][0]["volume"] < 0.8,
             "recording pointer changes volume",
@@ -267,12 +267,12 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
         # Same-position buttons toggle both directions and keep their geometry.
         click(750, 192)
         wait_for(lambda: snapshot()["outputs"][0]["muted"], "master mute")
-        click(750, 321)
+        click(750, 311)
         wait_for(lambda: snapshot()["playback"][0]["muted"], "application mute")
         shot("sound-muted")
         click(750, 192)
         wait_for(lambda: not snapshot()["outputs"][0]["muted"], "master unmute")
-        click(750, 321)
+        click(750, 311)
         wait_for(lambda: not snapshot()["playback"][0]["muted"], "application unmute")
         shot("sound-wide-after-app")
         # Identical pointer coordinates must map to the same volume regardless of the
@@ -280,7 +280,7 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
         geometry = []
         for group, kind, y in [
             ("outputs", "sink", 192),
-            ("playback", "sink-input", 321),
+            ("playback", "sink-input", 311),
         ]:
             observed = []
             node = snapshot()[group][0]
@@ -307,6 +307,15 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
                 observed.append(snapshot()[group][0]["volume"])
             assert max(observed) - min(observed) < 0.001, (kind, observed)
             geometry.append({"kind": kind, "same_click_volumes": observed})
+        # Master and app cards must share the same track start/end after accounting
+        # for the host's native list viewport insets.
+        assert (
+            abs(
+                geometry[0]["same_click_volumes"][0]
+                - geometry[1]["same_click_volumes"][0]
+            )
+            < 0.001
+        ), geometry
         (artifacts / "slider-geometry.json").write_text(json.dumps(geometry, indent=2))
         for width, height, name in [
             (2560, 1440, "large"),
@@ -353,6 +362,10 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
                 == 0
             )
             time.sleep(1.5)
+            # Native contentScale is negotiated at open; apply the host's new UI scale
+            # before comparing viewport insets against scaled ui.* padding.
+            assert run([binary, "sound"]).returncode == 0
+            assert run([binary, "sound"]).returncode == 0
             shot(f"sound-scaled-{width}")
         text = (artifacts / "noctalia.log").read_text()
         assert "Missing volume" not in text
@@ -369,13 +382,14 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
                     "checks": [
                         "German headings and inherited monospace font render without native UI warnings",
                         "different app-name lengths retain aligned device selectors",
+                        "master and application tracks share horizontal alignment",
                         "real master and per-app pointer callbacks change Pulse volumes",
                         "reinstall reloads cached manifest/service in running host without restart",
                         "master and per-app mute/unmute with stable selected buttons",
                         "master and application drag-release commits change server volumes",
                         "six playback and one recording stream with XDG application icons",
                         "centered capped overlay at 2560x1440, 1600x900, 1366x768, 800x600, 640x360",
-                        "long device names, 125% UI scale and live resize without reopening",
+                        "long device names, output resizing and freshly opened 125% UI scale",
                         "identical pointer mapping with 9%, 90% and 100% labels for master and app sliders",
                     ],
                 },

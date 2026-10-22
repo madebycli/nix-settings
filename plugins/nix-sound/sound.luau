@@ -78,14 +78,14 @@ local function streams(list, devices, title, compact)
         table.insert(nodes,ui.column(host.card({key=stream.kind..tostring(stream.id),gap=4,padding=8}),content))
     end
     if #nodes==0 then table.insert(nodes,ui.label({text=tr("no_streams"),color="on_surface_variant",maxLines=2})) end
-    local heading=ui.row({paddingH=8,minHeight=24,align="center"},{
+    local heading=ui.row({paddingH=8+(compact and 0 or host.scrollInset()),minHeight=24,align="center"},{
         ui.label({text=tr(title),fontSize=16,fontWeight="medium",baseline="textFixedHeight",color="on_surface_variant"}),
     })
     if compact then
         table.insert(nodes,1,heading)
         return ui.column({align="stretch",gap=6},nodes)
     end
-    return ui.column({flexGrow=1,align="stretch",gap=6}, {
+    return ui.column({flexGrow=1,align="stretch",gap=0}, {
         heading,ui.scroll({key=title,flexGrow=1,align="stretch",gap=6},nodes),
     })
 end
@@ -95,7 +95,7 @@ render=function()
     local narrow=width<760
     local error=noctalia.state.get("command-error") or ""
     if error=="" then error=noctalia.state.get("error") or "" end
-    local nodes={ui.row({gap=6,align="center"},{
+    local nodes={ui.row({gap=6,paddingH=host.scrollInset(),align="center"},{
         ui.label({text=tr("title"),fontSize=20,fontWeight="semibold",baseline="textFixedHeight",flexGrow=1}),
         button("","refresh",function()send({action="refresh"})end),
         ui.button({text="",glyph="x",onClick=function()panel.close()end,visible=(host.style()).show_close_buttons,controlSize="sm"}),
@@ -108,9 +108,17 @@ render=function()
     else
         -- Let native flex allocate the actual compositor viewport, including bars and panel padding.
         -- Fixed monitor-derived child widths can exceed it and clip the left/right fields.
-        table.insert(nodes,ui.row({key="wide-body",flexGrow=1,gap=8,align="stretch"},{
-            ui.column({flexGrow=1,align="stretch",gap=8},{master(snapshot.outputs,"output","volume"),streams(snapshot.playback,snapshot.outputs,"playback",false)}),
-            ui.column({flexGrow=1,align="stretch",gap=8},{master(snapshot.inputs,"input","microphone"),streams(snapshot.recording,snapshot.inputs,"recording",false)}),
+        -- The lists already have native viewport insets. Match those above them,
+        -- rather than adding another column gutter and another heading/list gap.
+        local function side(devices,title,glyph,list,section)
+            return ui.column({flexGrow=1,align="stretch",gap=4},{
+                ui.column({paddingH=host.scrollInset(),align="stretch"},{master(devices,title,glyph)}),
+                streams(list,devices,section,false),
+            })
+        end
+        table.insert(nodes,ui.row({key="wide-body",flexGrow=1,gap=0,align="stretch"},{
+            side(snapshot.outputs,"output","volume",snapshot.playback,"playback"),
+            side(snapshot.inputs,"input","microphone",snapshot.recording,"recording"),
         }))
     end
     lastGeometry=tostring(width)..":"..tostring(height)..noctalia.json.encode(host.appearance())

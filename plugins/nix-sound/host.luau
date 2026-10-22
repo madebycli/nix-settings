@@ -10,6 +10,11 @@ function M.appearance()
     local a = noctalia.getSetting("accessibility") or {}
     return {shell = shell, ui_scale = a.ui_scale or 1}
 end
+-- Native ScrollView reserves Style::spaceXs (4 output pixels) on each side.
+-- ui.* padding is scaled, so convert this host-owned inset to script coordinates.
+function M.scrollInset()
+    return 4 / math.max(0.1,(M.appearance()).ui_scale)
+end
 function M.card(extra)
     local shell = (M.appearance()).shell
     local p = shell.panel or {}
