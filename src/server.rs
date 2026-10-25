@@ -163,7 +163,7 @@ pub fn watch() -> Result<()> {
         libc::signal(libc::SIGINT, stop as *const () as libc::sighandler_t);
     }
     let directory = directory()?;
-    let lock: File = OpenOptions::new()
+    let mut lock: File = OpenOptions::new()
         .create(true)
         .truncate(false)
         .write(true)
@@ -173,6 +173,8 @@ pub fn watch() -> Result<()> {
         unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0,
         "Nix Sound backend is already running"
     );
+    lock.set_len(0)?;
+    writeln!(lock, "{}", std::process::id())?;
     let path = directory.join("audio.sock");
     let _ = fs::remove_file(&path);
     let listener = UnixListener::bind(&path)?;

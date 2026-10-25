@@ -79,6 +79,7 @@ if args.kind == "sound":
     local output={id=1,kind="sink",label=string.rep("Long device name ",10),volume=.32,is_default=true,muted=false}
     local input={id=2,kind="source",label="Microphone",volume=.88,is_default=true,muted=false}
     local streams={};for i=1,50 do streams[i]={id=i+10,kind="sink-input",label="Music app "..i,volume=.54,muted=false,device=1}end
+    values.connected=true
     values.snapshot={outputs={output},inputs={input},playback=streams,recording={}}
     onOpen();watchers.snapshot(values.snapshot)
     local function sliders(node, result)
@@ -92,6 +93,15 @@ if args.kind == "sound":
         control.props.onDragEnd() -- The actual native API supplies NO value here.
         assert(values.command.command.volume==.27,"Slider lost its actual onChange value")
     end
+    noctalia.state.set("connected",false)
+    local function statusLabels(node)
+        if node.type=="label" then
+            assert(node.props.text~="no_devices" and node.props.text~="no_streams","Disconnected service must not look like an empty audio graph")
+        end
+        for _,child in ipairs(node.children)do statusLabels(child)end
+    end
+    statusLabels(tree)
+    noctalia.state.set("connected",true)
     local updateView=update
     '''
 else:

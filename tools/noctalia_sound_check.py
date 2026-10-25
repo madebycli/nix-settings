@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import tempfile
 import time
@@ -145,7 +146,30 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
         # Exercise the actual long German headings and an inherited monospace host font.
         config = root / "config/noctalia/config.toml"
         config.parent.mkdir(parents=True, exist_ok=True)
-        config.write_text('[shell]\nlang="de"\nfont_family="monospace"\n')
+        # First stream intentionally fails before emitting JSON. Commands and later
+        # stream attempts delegate to the real engine, preserving all existing checks.
+        bridge = root / "audio-engine"
+        failed_once = root / "failed-once"
+        attempts = root / "watch-attempts"
+        import shlex
+
+        bridge.write_text(
+            '#!/bin/sh\nif [ "$1" = watch ]; then\n  echo attempt >> '
+            + shlex.quote(str(attempts))
+            + "\n  if [ ! -f "
+            + shlex.quote(str(failed_once))
+            + " ]; then\n    touch "
+            + shlex.quote(str(failed_once))
+            + "\n    echo 'fixture early startup failure' >&2\n    exit 7\n  fi\nfi\nexec "
+            + shlex.quote(binary)
+            + ' "$@"\n'
+        )
+        bridge.chmod(0o755)
+        config.write_text(
+            '[shell]\nlang="de"\nfont_family="monospace"\n[plugin_settings."madebycli/nix-sound"]\nexecutable='
+            + json.dumps(str(bridge))
+            + "\n"
+        )
         result = run([binary, "install-plugin"])
         assert result.returncode == 0, result.stderr
         installed = root / "data/noctalia/plugins/nix-sound/plugin.toml"
@@ -167,6 +191,46 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
             lambda: len(snapshot().get("playback", [])) == 6,
             "six live playback streams",
         )
+        sock = runtime / "nix-sound/audio.sock"
+        lock = runtime / "nix-sound/backend.lock"
+
+        def backend_pid():
+            try:
+                return int(lock.read_text().strip())
+            except (OSError, ValueError):
+                return 0
+
+        wait_for(
+            lambda: sock.exists() and backend_pid() > 0,
+            "plugin recovers from a pre-JSON startup failure",
+        )
+        assert len(attempts.read_text().splitlines()) >= 2
+        first_pid = backend_pid()
+        os.kill(first_pid, signal.SIGKILL)
+        wait_for(
+            lambda: backend_pid() > 0 and backend_pid() != first_pid and sock.exists(),
+            "automatic backend restart while panel is open",
+        )
+        # Reproduce a missing executable while the audio server and other programs
+        # remain healthy. It must render a connection error, never fake no-devices.
+        live_pid = backend_pid()
+        unavailable = bridge.with_suffix(".temporarily-missing")
+        bridge.rename(unavailable)
+        os.kill(live_pid, signal.SIGKILL)
+        wait_for(
+            lambda: (
+                not sock.exists()
+                or run([binary, "request", '{"action":"refresh"}']).returncode != 0
+            ),
+            "backend is unavailable",
+        )
+        shot("sound-backend-missing")
+        unavailable.rename(bridge)
+        wait_for(
+            lambda: backend_pid() > 0 and backend_pid() != live_pid and sock.exists(),
+            "automatic recovery after executable restoration",
+        )
+        time.sleep(0.5)
         driver = subprocess.Popen(
             [a.driver],
             env=env,
@@ -380,6 +444,9 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
                 {
                     "ok": True,
                     "checks": [
+                        "startup stderr/exit before JSON recovers automatically",
+                        "killed backend restarts while panel stays open",
+                        "missing executable shows connection error and restoration recovers",
                         "German headings and inherited monospace font render without native UI warnings",
                         "different app-name lengths retain aligned device selectors",
                         "master and application tracks share horizontal alignment",

@@ -31,6 +31,7 @@
             export XDG_CONFIG_HOME="$TMPDIR/config" XDG_DATA_HOME="$TMPDIR/data"
             noctalia plugins lint ${./plugins/nix-sound} > "$out"
             python3 ${./tools/plugin_contract.py} --plugin ${./plugins/nix-sound} --noctalia-source ${pkgs.noctalia.src}
+            python3 ${./tools/service_contract.py} --plugin ${./plugins/nix-sound}
           '';
       });
       devShells = each (system:

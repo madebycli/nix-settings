@@ -100,6 +100,14 @@ render=function()
         button("","refresh",function()send({action="refresh"})end),
         ui.button({text="",glyph="x",onClick=function()panel.close()end,visible=(host.style()).show_close_buttons,controlSize="sm"}),
     })}
+    lastGeometry=tostring(width)..":"..tostring(height)..noctalia.json.encode(host.appearance())
+    if noctalia.state.get("connected")~=true then
+        table.insert(nodes,ui.column({align="stretch",gap=8,paddingH=host.scrollInset()},{
+            ui.label({text=error~="" and error or tr("connecting"),color=error~="" and "error" or "on_surface_variant",maxLines=6}),
+            ui.row({align="center"},{button(tr("retry"),"refresh",function()send({action="refresh"})end)}),
+        }))
+        panel.render(ui.column({align="stretch",flexGrow=1,gap=8},nodes));return
+    end
     if error~="" then table.insert(nodes,ui.label({text=error,color="error",maxLines=2})) end
     if narrow then
         local body={master(snapshot.outputs,"output","volume"),master(snapshot.inputs,"input","microphone"),
@@ -126,6 +134,7 @@ render=function()
 end
 noctalia.state.watch("snapshot",function(value) snapshot=value or snapshot;render()end)
 noctalia.state.watch("error",render)
+noctalia.state.watch("connected",render)
 noctalia.state.watch("command-error",render)
 function onOpen()
     host.openViewport();opened=true;noctalia.state.set("open",true);panel.setWantsSecondTicks(true);render()

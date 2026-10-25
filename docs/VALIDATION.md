@@ -11,6 +11,10 @@ The isolated null-device audio run produced its first snapshot in about 25 ms wi
 
 The x86_64 Nix package build, packaged CLI and complete `nix flake check` (including official Noctalia plugin lint) passed locally. Both native plugins also loaded in unmodified Noctalia 5.3.0 under software-rendered Sway. The combined host runner exercised live palette/shape/border/transparency/UI-scale changes, native Sound backend startup and audio control, and native overlays at 800×600 and 1366×768 with 125% UI scaling. Screenshots remain in the execution workspace, outside the source repositories.
 
+## 1.0.5 sound backend recovery
+
+The native Sound panel test forced the first backend launch to fail, verified a visible connection error and automatic retry, killed a running backend and verified recovery while the panel stayed open, then hid the engine executable and verified the error state and recovery after restoring it. Audio controls, mute, routing and responsive layout checks still passed. An installer acceptance test ran the packaged Nix wrapper twice and confirmed its executable path, registered indirect GC root and repeat-install behavior. The plugin callback contract also verifies bounded retry timing and that a failed backend is not shown as “no devices.” On the user's machine, `nix-settings doctor` reported 3 outputs, 2 inputs and 3 application streams; this confirms the backend sees the audio graph but does not by itself identify the installed plugin's original launch failure.
+
 Sound now prefers a centered 1600 × 900 logical-pixel surface before Noctalia UI scaling, clamped by the host on smaller monitors. Scroll viewports receive exact remaining height through native flex layout, so content stays within the panel.
 
 PipeWire-Pulse on the user's machine, physical device hotplug, a physical 15-inch monitor and GPU-backed MangoWM remain unverified. The Sway/Noctalia tests do not establish target-hardware acceptance. Runtime prerequisites and installation commands are in README.md.

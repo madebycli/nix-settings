@@ -63,7 +63,7 @@ fn run() -> Result<()> {
                 s.inputs.len(),
                 s.playback.len() + s.recording.len()
             );
-            Ok(())
+            install::diagnose()
         }
         _ => bail!("Unknown command; use --help"),
     }

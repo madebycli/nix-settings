@@ -72,3 +72,6 @@ jobs:
             "github:${GITHUB_REPOSITORY}#nix-settings"
           test -x "$DIRECT_PROFILE/bin/nix-settings"
           "$DIRECT_PROFILE/bin/nix-settings" --version
+
+      - name: Verify persistent engine installation
+        run: python3 tools/nix_install_acceptance.py --binary ./result/bin/nix-settings

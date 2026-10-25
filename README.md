@@ -10,9 +10,9 @@ nix-settings install-plugin
 nix-settings sound
 ```
 
-`install-plugin` installs and enables the local `madebycli/nix-sound` plugin without adding a bar widget. Existing Noctalia configuration and plugin enablement are retained. Changed settings and previously installed plugin files are backed up. The executable path is stored in the plugin, including the Nix wrapper that supplies audio utilities.
+`install-plugin` installs and enables the local `madebycli/nix-sound` plugin without adding a bar widget. Existing Noctalia configuration and plugin enablement are retained. Changed settings and previously installed plugin files are backed up. The executable path is stored in the plugin, including the Nix wrapper that supplies audio utilities. Nix installs also keep an indirect GC root in `$XDG_STATE_HOME/nix-sound/engine`, so an engine installed from a temporary `nix run` remains available.
 
-Noctalia **5.2+ / API 31**, a Wayland session and a Pulse-compatible server are required. On NixOS use PipeWire with `services.pipewire.pulse.enable = true`. The package supplies `pactl`; it does not start a second audio server. After an update, run `nix-settings install-plugin` again; re-enable the plugin in Noctalia if an old service remains loaded.
+Noctalia **5.2+ / API 31**, a Wayland session and a Pulse-compatible server are required. On NixOS use PipeWire with `services.pipewire.pulse.enable = true`. The package supplies `pactl`; it does not start a second audio server. After an update, run `nix-settings install-plugin` again; the installer reloads the local plugin in a running Noctalia session and repairs stale generated engine paths. If the backend exits while the panel is open, the panel reports the error and reconnects automatically.
 
 ```sh
 nix profile upgrade --all --refresh
@@ -38,7 +38,7 @@ Escape and outside click use Noctalia's normal dismissal behavior.
 
 One subscription receives audio-server events. A debounced graph refresh uses two structured JSON calls regardless of the number of streams; there is no per-device polling. Slider changes are committed on release. Installation also reloads the local plugin in a running Noctalia session so updated scripts and panel dimensions take effect. The centered overlay is capped at 1600 × 900 logical pixels before Noctalia UI scaling and clamps to smaller monitors; compact application cards retain their logos and switch to one scrollable column on narrow screens. Output/input defaults, mute, volume and routing for both playback and recording use supported Pulse server commands. Server restarts reconnect automatically. Every recording stream remains independently controllable.
 
-The backend starts on first open and remains idle between events. IPC uses a private, bounded Unix-socket protocol with typed requests, command deadlines and single-instance locking. Closing Noctalia stops its child backend and audio subscription.
+The backend starts on first open and remains idle between events. IPC uses a private, bounded Unix-socket protocol with typed requests, command deadlines and single-instance locking. Closing Noctalia stops its child backend and audio subscription. The plugin detects backend launch failures and unexpected exits, shows a reconnect action and retries with bounded backoff; while healthy it does not poll audio or spawn a timer subprocess.
 
 ## Nix modules
 

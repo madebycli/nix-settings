@@ -1,1 +1,18 @@
-{"title":"Sound","output":"Systemlautstärke","input":"Mikrofon","playback":"Wiedergabe","recording":"Aufnahme","volume":"Lautstärke","mute":"Stumm","unmute":"Ton an","no_devices":"Kein Gerät verbunden","no_streams":"Keine aktiven Anwendungen","executable":"Nix-Sound-Programm"}
+{
+  "title": "Sound",
+  "output": "Systemlautstärke",
+  "input": "Mikrofon",
+  "playback": "Wiedergabe",
+  "recording": "Aufnahme",
+  "volume": "Lautstärke",
+  "mute": "Stumm",
+  "unmute": "Ton an",
+  "no_devices": "Kein Gerät verbunden",
+  "no_streams": "Keine aktiven Anwendungen",
+  "executable": "Nix-Sound-Programm",
+  "connecting": "Audioverbindung wird hergestellt …",
+  "backend_missing": "Die Audiosteuerung wurde nicht gefunden. Bitte Nix Sound erneut installieren:",
+  "backend_stopped": "Die Audiosteuerung wurde beendet. Die Verbindung wird erneut aufgebaut.",
+  "command_failed": "Der Audiobefehl konnte nicht ausgeführt werden.",
+  "retry": "Erneut verbinden"
+}

@@ -1,1 +1,18 @@
-{"title":"Sound","output":"System output","input":"Microphone","playback":"Playback","recording":"Recording","volume":"Volume","mute":"Mute","unmute":"Unmute","no_devices":"No device connected","no_streams":"No active applications","executable":"Nix Sound executable"}
+{
+  "title": "Sound",
+  "output": "System output",
+  "input": "Microphone",
+  "playback": "Playback",
+  "recording": "Recording",
+  "volume": "Volume",
+  "mute": "Mute",
+  "unmute": "Unmute",
+  "no_devices": "No device connected",
+  "no_streams": "No active applications",
+  "executable": "Nix Sound executable",
+  "connecting": "Connecting to audio …",
+  "backend_missing": "Audio backend not found. Please reinstall Nix Sound:",
+  "backend_stopped": "The audio backend stopped. Reconnecting.",
+  "command_failed": "The audio command failed.",
+  "retry": "Reconnect"
+}
