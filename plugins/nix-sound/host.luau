@@ -5,10 +5,27 @@ local viewportWidth, viewportHeight
 function M.openViewport()
     viewportWidth, viewportHeight = nil, nil
 end
+local function setting(path, fallback)
+    local value=noctalia.getSetting(path)
+    if value==nil then return fallback end
+    return value
+end
 function M.appearance()
-    local shell = noctalia.getSetting("shell") or {}
-    local a = noctalia.getSetting("accessibility") or {}
-    return {shell = shell, ui_scale = a.ui_scale or 1}
+    -- Read individual scalar paths. Fetching the whole shell/accessibility tables
+    -- clones every nested setting into Luau and can exceed the panel's CPU budget.
+    return {shell={
+        corner_radius_scale=setting("shell.corner_radius_scale",1),
+        button_borders=setting("shell.button_borders",true),
+        input_borders=setting("shell.input_borders",true),
+        settings_window_translucent=setting("shell.settings_window_translucent",false),
+        show_close_buttons=setting("shell.show_close_buttons",true),
+        panel={
+            transparency_mode=setting("shell.panel.transparency_mode","solid"),
+            borders=setting("shell.panel.borders",true),
+            border_width=setting("shell.panel.border_width",1),
+            border_color=setting("shell.panel.border_color","outline"),
+        },
+    },ui_scale=setting("accessibility.ui_scale",1)}
 end
 -- Native ScrollView reserves Style::spaceXs (4 output pixels) on each side.
 -- ui.* padding is scaled, so convert this host-owned inset to script coordinates.

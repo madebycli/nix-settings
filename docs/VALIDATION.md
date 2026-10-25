@@ -46,3 +46,5 @@ The user reported that Sound opened but showed “Kein Gerät verbunden” while
 ## 1.0.6 overlay callback timeout
 
 The user supplied Noctalia's “reagiert nicht mehr” auto-disable notification for the Sound overlay. Noctalia 5.3.0 budgets about 25 ms CPU per plugin callback and disables a script after repeated timeouts. The overlay used the default 250 ms update interval and serialized the full effective shell settings table on every tick to detect theme/layout changes. It now checks once per second and compares only a compact signature of the settings that affect the panel. `tools/plugin_contract.py` includes a large unrelated shell setting fixture to guard against reintroducing full-settings serialization.
+
+The user reported the timeout continued after 1.0.6. Inspection showed its compact signature still called `getSetting("shell")`, which copied the whole settings table into Luau. Version 1.0.7 reads only individual dotted scalar paths for panel appearance and UI scale. The plugin contract now rejects fetching the entire shell/accessibility tables.

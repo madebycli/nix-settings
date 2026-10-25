@@ -55,7 +55,13 @@ local function encode(value)
     local parts={};for _,key in ipairs(keys)do table.insert(parts,tostring(key)..":"..encode(value[key]))end
     return "{"..table.concat(parts,",").."}"
 end
-noctalia={appIconPath=function()return "/tmp/app.svg"end,getSetting=function(key)return settings[key]end,
+local function getSetting(path)
+    assert(path~="shell" and path~="accessibility","Plugins must not clone the entire Noctalia settings table")
+    local value=settings
+    for key in string.gmatch(path,"[^%.]+") do value=value and value[key] end
+    return value
+end
+noctalia={appIconPath=function()return "/tmp/app.svg"end,getSetting=getSetting,
     setUpdateInterval=function(ms)updateInterval=ms end,
     outputs=function()return {{name="small",width=currentWidth,height=currentHeight,scale=1,focused=true}}end,
     focusedOutputName=function()return "small"end,getColor=function()return "#abcdef"end,
