@@ -59,3 +59,5 @@ nix flake check --no-write-lock-file
 The audio acceptance tool needs `pulseaudio` and `pulseaudio-utils` and starts an isolated server with null devices. It checks real master controls, playback/recording routing, reconnect and shutdown. `tools/plugin_contract.py --noctalia-source /path/to/noctalia` executes native Luau callbacks against upstream property definitions and checks monitor/scale/theme cases; it requires `luau`.
 
 See `docs/VALIDATION.md` for verified scope and limitations. The former GTK application and broader settings experiments are preserved in `backup/before-noctalia-sound-20261021`, `backup/system-management-shell`, `backup/github-cli-sync-ui` and `backup/initial-sound`.
+
+Application icons are resolved in a separate asynchronous Rust helper. The panel displays controls immediately and adds available icons when ready; cold or missing icons cannot block a Noctalia render callback. The helper uses existing desktop entries and icon themes and does not require GTK/Qt.

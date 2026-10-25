@@ -13,6 +13,33 @@ local function decode(text)
     return ok and type(value)=="table" and value or nil
 end
 local function nonempty(text) return type(text)=="string" and text~="" and text or nil end
+local icons, iconSeen, iconBusy = {}, {}, false
+local resolveIcons
+resolveIcons=function(snapshot)
+    if iconBusy then return end
+    local requests={}
+    for _,list in ipairs({snapshot.playback or {},snapshot.recording or {}}) do
+        for _,stream in ipairs(list) do
+            local key=(stream.icon or "").."\31"..stream.label
+            if not iconSeen[key] and #requests<256 then
+                iconSeen[key]=true
+                table.insert(requests,{key=key,icon=stream.icon or "",label=stream.label})
+            end
+        end
+    end
+    if #requests==0 then return end
+    iconBusy=true
+    local accepted=noctalia.runAsync({exe,"icons",noctalia.json.encode(requests)},function(result)
+        iconBusy=false
+        local paths=result and result.exitCode==0 and decode(result.stdout)
+        if paths then
+            for key,path in pairs(paths) do if type(path)=="string" then icons[key]=path end end
+            noctalia.state.set("icons",icons)
+        end
+        resolveIcons(noctalia.state.get("snapshot") or {})
+    end,6000)
+    if not accepted then iconBusy=false end
+end
 local function failed(reason)
     started=false
     queue={}
@@ -65,6 +92,7 @@ local function start()
                 noctalia.state.set("error","")
                 if not wasConnected then noctalia.state.set("command-error","") end
                 noctalia.state.set("snapshot",data.snapshot)
+                resolveIcons(data.snapshot)
                 pump()
             else
                 lastFailure=nonempty(data.error) or noctalia.tr("backend_stopped")
@@ -85,6 +113,9 @@ noctalia.state.watch("command", function(message)
     if type(message) ~= "table" then return end
     local command = message.command
     if type(command) ~= "table" then return end
+    if command.action=="refresh" and not iconBusy then
+        iconSeen={};resolveIcons(noctalia.state.get("snapshot") or {})
+    end
     if command.action=="refresh" and not started then
         retryAt=0;retryDelay=1000;noctalia.state.set("command-error","");start();return
     end

@@ -61,7 +61,7 @@ local function getSetting(path)
     for key in string.gmatch(path,"[^%.]+") do value=value and value[key] end
     return value
 end
-noctalia={appIconPath=function()return "/tmp/app.svg"end,getSetting=getSetting,
+noctalia={appIconPath=function()error("Synchronous icon lookup must never run in panel callbacks")end,getSetting=getSetting,
     setUpdateInterval=function(ms)updateInterval=ms end,
     outputs=function()return {{name="small",width=currentWidth,height=currentHeight,scale=1,focused=true}}end,
     focusedOutputName=function()return "small"end,getColor=function()return "#abcdef"end,

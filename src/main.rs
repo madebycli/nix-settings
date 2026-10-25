@@ -1,4 +1,5 @@
 mod audio;
+mod icons;
 mod install;
 mod server;
 use anyhow::{Result, bail, ensure};
@@ -37,6 +38,11 @@ fn run() -> Result<()> {
         "watch" => {
             ensure!(args.len() == 1, "Unexpected argument");
             server::watch()
+        }
+        "icons" => {
+            ensure!(args.len() == 2, "Pass one icon request array");
+            println!("{}", serde_json::to_string(&icons::resolve(&args[1])?)?);
+            Ok(())
         }
         "request" => {
             ensure!(args.len() == 2, "Pass one JSON object");

@@ -17,3 +17,7 @@ Master headers share 24-pixel icon slots and 18-pixel semibold text with the hos
 Wide-mode master cards and section captions account for the native ScrollView's own 4-output-pixel horizontal viewport insets. Matching script padding divides that inset by the effective Noctalia UI scale, avoiding a second scaled margin. Adjacent columns rely on those viewport insets for their gutter. Only a 4-unit master/section gap remains; the section heading adds no extra gap above the list's native vertical inset. This keeps master and application tracks aligned and avoids compounded empty space.
 
 The overlay update interval is one second. Its geometry/theme signature contains only the monitor dimensions and Noctalia settings used by the panel, read through individual dotted scalar paths. Never fetch the complete shell or accessibility settings tables into Luau: deep-copying those trees on callbacks can exceed Noctalia's roughly 25 ms CPU budget and disable a script after repeated timeouts.
+
+## Icon resolution outside the panel
+
+The panel never calls synchronous `noctalia.appIconPath`. A service batches new application identities into `nix-settings icons JSON` using bounded `runAsync`. The helper resolves XDG desktop-entry names/classes and existing icon themes outside both the script callback and the audio event loop. The service caches hits and misses; the panel watches the resulting path map and draws generic native glyphs while a path is unavailable. Manual refresh clears the lookup cache.

@@ -67,6 +67,9 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
     # A known XDG icon tests the real resolver; this is generated test artwork.
     icons = root / "data/icons/hicolor/scalable/apps"
     icons.mkdir(parents=True)
+    (icons.parent.parent / "index.theme").write_text(
+        "[Icon Theme]\nName=Hicolor\nDirectories=scalable/apps\n[scalable/apps]\nSize=24\nType=Scalable\nMinSize=1\nMaxSize=256\n"
+    )
     (icons / "sound-test.svg").write_text(
         '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24" rx="5" fill="#ff7040"/><circle cx="12" cy="12" r="6" fill="white"/></svg>'
     )
@@ -83,6 +86,15 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
     def snapshot():
         result = run([binary, "snapshot"])
         return json.loads(result.stdout) if result.returncode == 0 else {}
+
+    resolved = run([binary, "icons", json.dumps([
+        {"key":"known","icon":"sound-test","label":"Known application"},
+        {"key":"missing","icon":"missing-app-icon","label":"Missing application"},
+    ])])
+    assert resolved.returncode == 0, resolved.stderr
+    icon_paths = json.loads(resolved.stdout)
+    assert icon_paths.get("known") == str(icons / "sound-test.svg"), icon_paths
+    assert "missing" not in icon_paths
 
     def shot(name):
         time.sleep(1)
@@ -128,7 +140,7 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
                         "Long application name to check truncation",
                         "Voice chat",
                     ][i],
-                    "--property=application.icon_name=sound-test",
+                    "--property=application.icon_name=" + ("sound-test" if i < 5 else "missing-app-icon"),
                     "/dev/zero",
                 ],
                 "playback" + str(i),
@@ -154,7 +166,7 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
         import shlex
 
         bridge.write_text(
-            '#!/bin/sh\nif [ "$1" = watch ]; then\n  echo attempt >> '
+            '#!/bin/sh\nif [ "$1" = icons ]; then sleep 2; fi\nif [ "$1" = watch ]; then\n  echo attempt >> '
             + shlex.quote(str(attempts))
             + "\n  if [ ! -f "
             + shlex.quote(str(failed_once))
@@ -433,6 +445,8 @@ with tempfile.TemporaryDirectory(prefix="sound-host-") as directory:
             shot(f"sound-scaled-{width}")
         text = (artifacts / "noctalia.log").read_text()
         assert "Missing volume" not in text
+        assert "exceeded its CPU budget" not in text, "A native plugin callback timed out"
+        assert "disabled after repeated timeouts" not in text
         assert "language: de" in text, (
             "The native fixture must actually use German translations"
         )

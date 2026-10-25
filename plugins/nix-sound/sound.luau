@@ -4,6 +4,7 @@ local opened = false
 local nonce = 0
 local lastGeometry = ""
 local pending = {}
+local icons = noctalia.state.get("icons") or {}
 local snapshot = noctalia.state.get("snapshot") or {outputs={}, inputs={}, playback={}, recording={}}
 local render
 local function tr(key) return noctalia.tr(key) end
@@ -62,8 +63,9 @@ local function master(devices, title, glyph)
     return ui.column(host.card({gap=6,padding=8}),nodes)
 end
 local function appIcon(stream)
-    local path=noctalia.appIconPath(stream.icon~="" and stream.icon or stream.label,24)
-    if not path then path=noctalia.appIconPath(stream.label,24) end
+    -- Filesystem/theme lookup is performed by the service's async Rust helper.
+    -- A cold or missing icon must never spend the panel's 25 ms callback budget.
+    local path=icons[(stream.icon or "").."\31"..stream.label]
     if path then return ui.image({path=path,width=24,height=24,fit="contain"}) end
     return ui.glyph({name=stream.kind=="source-output" and "microphone" or "apps",size=24,color="primary"})
 end
@@ -134,6 +136,7 @@ render=function()
     panel.render(ui.column({align="stretch",flexGrow=1,gap=8},nodes))
 end
 noctalia.state.watch("snapshot",function(value) snapshot=value or snapshot;render()end)
+noctalia.state.watch("icons",function(value) icons=value or {};render()end)
 noctalia.state.watch("error",render)
 noctalia.state.watch("connected",render)
 noctalia.state.watch("command-error",render)
