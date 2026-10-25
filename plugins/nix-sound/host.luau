@@ -37,6 +37,20 @@ function M.style()
         window_translucent=shell.settings_window_translucent == true,
         show_close_buttons=shell.show_close_buttons ~= false, ui_scale=host.ui_scale}
 end
+-- Only compare values that affect this panel. Serializing the full Noctalia shell
+-- settings table on every update can exceed the plugin's 25 ms callback budget.
+function M.signature()
+    local appearance=M.appearance()
+    local shell=appearance.shell
+    local panel=shell.panel or {}
+    return table.concat({
+        tostring(appearance.ui_scale),tostring(shell.corner_radius_scale or 1),
+        tostring(panel.transparency_mode or "solid"),tostring(panel.borders ~= false),
+        tostring(panel.border_width or 1),tostring(panel.border_color or "outline"),
+        tostring(shell.button_borders ~= false),tostring(shell.input_borders ~= false),
+        tostring(shell.settings_window_translucent == true),tostring(shell.show_close_buttons ~= false),
+    },"\31")
+end
 function M.borderColor()
     local p = ((M.appearance()).shell).panel or {}
     local color = p.border_color or "outline"

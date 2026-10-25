@@ -45,6 +45,7 @@ def lua(value):
 harness = r'''
 local currentWidth, currentHeight = 1366, 768
 local settings = {shell={corner_radius_scale=1,panel={transparency_mode="solid",borders=true},show_close_buttons=true},accessibility={ui_scale=1}}
+local updateInterval = 0
 local values, watchers = {}, {}
 local tree
 local function encode(value)
@@ -55,6 +56,7 @@ local function encode(value)
     return "{"..table.concat(parts,",").."}"
 end
 noctalia={appIconPath=function()return "/tmp/app.svg"end,getSetting=function(key)return settings[key]end,
+    setUpdateInterval=function(ms)updateInterval=ms end,
     outputs=function()return {{name="small",width=currentWidth,height=currentHeight,scale=1,focused=true}}end,
     focusedOutputName=function()return "small"end,getColor=function()return "#abcdef"end,
     tr=function(key)return key end,trp=function(key)return key end,getConfig=function()return "gif-player"end,
@@ -81,6 +83,10 @@ if args.kind == "sound":
     local streams={};for i=1,50 do streams[i]={id=i+10,kind="sink-input",label="Music app "..i,volume=.54,muted=false,device=1}end
     values.connected=true
     values.snapshot={outputs={output},inputs={input},playback=streams,recording={}}
+    assert(updateInterval==1000,"The overlay must not use the frequent default update interval")
+    local signature=host.signature()
+    settings.shell.unrelated=string.rep("unused setting ",10000)
+    assert(host.signature()==signature,"Unrelated shell settings must not affect the panel signature")
     onOpen();watchers.snapshot(values.snapshot)
     local function sliders(node, result)
         if node.type=="slider" then table.insert(result,node) end

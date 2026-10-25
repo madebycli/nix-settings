@@ -38,3 +38,11 @@ The native fixture now explicitly uses shell.lang=de and the host's monospace fo
 ## 1.0.4 spacing correction (2026-10-23)
 
 The user's close-up showed accumulated gaps around the section title and first application, plus master/application card edges offset by native list padding. Wide master cards now match the native ScrollView inset, section captions align with inner card content, and duplicate column/heading gaps are removed. The native fixture checks identical pointer mapping on master and app tracks as well as the existing 9%/90%/100% stability checks. At the default fixture both tracks now map the same coordinate to 76%. Scaled captures reopen the panel to apply Noctalia's negotiated 125% content scale before inspecting the matched insets.
+
+## 1.0.5 backend recovery (2026-10-25)
+
+The user reported that Sound opened but showed “Kein Gerät verbunden” while other programs had working audio. Their current `nix-settings doctor` reports Noctalia 5.3.0 and Audio: 3 outputs, 2 inputs, 3 application streams; this confirms graph discovery but does not establish the original desktop plugin launch failure. The native Noctalia test forced an initial launch failure, backend termination while the panel stayed open and a missing engine, then verified visible errors and reconnection. Real audio controls, mute, routing and responsive sizing still passed. Nix installs now retain their engine using an indirect GC root and repair stale generated plugin executable paths. This safeguard is not evidence that GC caused the original user failure. Version 1.0.5 was published at `ed82e718c647da401f40b123933029f9e092a2aa`; CI passed at https://github.com/madebycli/nix-settings/actions/runs/40217495137.
+
+## 1.0.6 overlay callback timeout
+
+The user supplied Noctalia's “reagiert nicht mehr” auto-disable notification for the Sound overlay. Noctalia 5.3.0 budgets about 25 ms CPU per plugin callback and disables a script after repeated timeouts. The overlay used the default 250 ms update interval and serialized the full effective shell settings table on every tick to detect theme/layout changes. It now checks once per second and compares only a compact signature of the settings that affect the panel. `tools/plugin_contract.py` includes a large unrelated shell setting fixture to guard against reintroducing full-settings serialization.

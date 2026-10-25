@@ -7,6 +7,7 @@ local pending = {}
 local snapshot = noctalia.state.get("snapshot") or {outputs={}, inputs={}, playback={}, recording={}}
 local render
 local function tr(key) return noctalia.tr(key) end
+noctalia.setUpdateInterval(1000)
 local function send(command)
     nonce += 1
     noctalia.state.set("command", {nonce=nonce, command=command})
@@ -100,7 +101,7 @@ render=function()
         button("","refresh",function()send({action="refresh"})end),
         ui.button({text="",glyph="x",onClick=function()panel.close()end,visible=(host.style()).show_close_buttons,controlSize="sm"}),
     })}
-    lastGeometry=tostring(width)..":"..tostring(height)..noctalia.json.encode(host.appearance())
+    lastGeometry=tostring(width)..":"..tostring(height)..":"..host.signature()
     if noctalia.state.get("connected")~=true then
         table.insert(nodes,ui.column({align="stretch",gap=8,paddingH=host.scrollInset()},{
             ui.label({text=error~="" and error or tr("connecting"),color=error~="" and "error" or "on_surface_variant",maxLines=6}),
@@ -129,7 +130,7 @@ render=function()
             side(snapshot.inputs,"input","microphone",snapshot.recording,"recording"),
         }))
     end
-    lastGeometry=tostring(width)..":"..tostring(height)..noctalia.json.encode(host.appearance())
+    lastGeometry=tostring(width)..":"..tostring(height)..":"..host.signature()
     panel.render(ui.column({align="stretch",flexGrow=1,gap=8},nodes))
 end
 noctalia.state.watch("snapshot",function(value) snapshot=value or snapshot;render()end)
@@ -142,5 +143,5 @@ end
 function onClose() opened=false;noctalia.state.set("open",false);panel.setWantsSecondTicks(false) end
 function update()
     local w,h=host.dimensions(1600,900)
-    if tostring(w)..":"..tostring(h)..noctalia.json.encode(host.appearance())~=lastGeometry then render() end
+    if tostring(w)..":"..tostring(h)..":"..host.signature()~=lastGeometry then render() end
 end
